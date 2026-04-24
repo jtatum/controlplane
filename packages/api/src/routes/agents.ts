@@ -4,10 +4,12 @@ import { z } from "zod";
 import {
   agents,
   openclawVersions,
+  provisioningJobs,
   CreateAgentSchema,
   AgentConfigSchema,
 } from "@controlplane/shared";
 import { db } from "../db.js";
+import { getTemporalClient, TASK_QUEUE } from "../temporal.js";
 
 const UpdateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -56,6 +58,8 @@ export default async function agentRoutes(app: FastifyInstance) {
       .where(eq(openclawVersions.isDefault, true))
       .limit(1);
 
+    const version = defaultVersion[0];
+
     const [agent] = await db
       .insert(agents)
       .values({
@@ -65,12 +69,47 @@ export default async function agentRoutes(app: FastifyInstance) {
         environment,
         instanceType,
         bedrockRegion: pickRegion(environment),
-        versionId: defaultVersion[0]?.id ?? null,
+        versionId: version?.id ?? null,
+        status: "provisioning",
         config: config ?? {},
       })
       .returning();
 
-    return reply.code(201).send(formatDetail(agent, defaultVersion[0]?.version ?? null));
+    const workflowId = `provision-${agent.id}`;
+    const temporal = await getTemporalClient();
+    const handle = await temporal.workflow.start("provisionAgent", {
+      taskQueue: TASK_QUEUE,
+      workflowId,
+      args: [
+        {
+          agentId: agent.id,
+          agentName: agent.agentName,
+          instanceType: agent.instanceType,
+          environment: agent.environment,
+          bedrockRegion: agent.bedrockRegion,
+          amiId: version?.amiId ?? "",
+          subnetId: process.env.SUBNET_ID ?? "",
+          securityGroupId: process.env.SECURITY_GROUP_ID ?? "",
+          instanceProfileArn: process.env.INSTANCE_PROFILE_ARN ?? "",
+        },
+      ],
+    });
+
+    await db.insert(provisioningJobs).values({
+      agentId: agent.id,
+      type: "provision",
+      status: "pending",
+      initiatedBy: user.id,
+      temporalWorkflowId: workflowId,
+      temporalRunId: handle.firstExecutionRunId,
+      params: {
+        agentName: agent.agentName,
+        instanceType: agent.instanceType,
+        environment: agent.environment,
+      },
+    });
+
+    return reply.code(201).send(formatDetail(agent, version?.version ?? null));
   });
 
   app.get("/agents", async (request, reply) => {
@@ -225,7 +264,32 @@ export default async function agentRoutes(app: FastifyInstance) {
       .where(eq(agents.id, params.data.id))
       .returning();
 
-    const version = existing.versionId
+    const workflowId = `terminate-${existing.id}`;
+    const temporal = await getTemporalClient();
+    const handle = await temporal.workflow.start("terminateAgent", {
+      taskQueue: TASK_QUEUE,
+      workflowId,
+      args: [
+        {
+          agentId: existing.id,
+          ec2InstanceId: existing.ec2InstanceId ?? "",
+        },
+      ],
+    });
+
+    await db.insert(provisioningJobs).values({
+      agentId: existing.id,
+      type: "terminate",
+      status: "pending",
+      initiatedBy: user.id,
+      temporalWorkflowId: workflowId,
+      temporalRunId: handle.firstExecutionRunId,
+      params: {
+        ec2InstanceId: existing.ec2InstanceId,
+      },
+    });
+
+    const versionRow = existing.versionId
       ? await db
           .select({ version: openclawVersions.version })
           .from(openclawVersions)
@@ -233,7 +297,7 @@ export default async function agentRoutes(app: FastifyInstance) {
           .limit(1)
       : [];
 
-    return reply.send(formatDetail(updated, version[0]?.version ?? null));
+    return reply.send(formatDetail(updated, versionRow[0]?.version ?? null));
   });
 }
 

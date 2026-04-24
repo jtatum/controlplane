@@ -16,6 +16,47 @@ const longAct = proxyActivities<typeof activities>({
   heartbeatTimeout: "30s",
 });
 
+export interface TerminateAgentWorkflowInput {
+  agentId: string;
+  ec2InstanceId: string;
+}
+
+export async function terminateAgent(
+  input: TerminateAgentWorkflowInput,
+): Promise<void> {
+  const { workflowId } = workflowInfo();
+
+  await act.updateProvisioningJob({ workflowId, status: "running" });
+
+  try {
+    await act.terminateInstance({ instanceId: input.ec2InstanceId });
+
+    await act.updateAgentStatus({
+      agentId: input.agentId,
+      status: "terminated",
+    });
+
+    await act.updateProvisioningJob({ workflowId, status: "succeeded" });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unknown termination error";
+
+    await act
+      .updateAgentStatus({ agentId: input.agentId, status: "error" })
+      .catch(() => {});
+
+    await act
+      .updateProvisioningJob({
+        workflowId,
+        status: "failed",
+        errorMessage: message,
+      })
+      .catch(() => {});
+
+    throw ApplicationFailure.nonRetryable(message);
+  }
+}
+
 export interface ProvisionAgentWorkflowInput {
   agentId: string;
   agentName: string;

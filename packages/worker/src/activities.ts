@@ -2,6 +2,7 @@ import {
   EC2Client,
   RunInstancesCommand,
   DescribeInstancesCommand,
+  TerminateInstancesCommand,
   type Tag,
 } from "@aws-sdk/client-ec2";
 import { SSMClient, PutParameterCommand } from "@aws-sdk/client-ssm";
@@ -244,5 +245,15 @@ export async function updateProvisioningJob(input: {
   await pool.query(
     `UPDATE provisioning_jobs SET ${setClauses.join(", ")} WHERE temporal_workflow_id = $1`,
     values,
+  );
+}
+
+export async function terminateInstance(input: {
+  instanceId: string;
+}): Promise<void> {
+  await ec2.send(
+    new TerminateInstancesCommand({
+      InstanceIds: [input.instanceId],
+    }),
   );
 }
