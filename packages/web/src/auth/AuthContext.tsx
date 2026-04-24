@@ -19,12 +19,27 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+const DEV_MODE = import.meta.env.VITE_DEV_MODE === "true";
+
+const DEV_USER = {
+  access_token: "dev-token",
+  token_type: "Bearer",
+  expired: false,
+  profile: {
+    sub: "dev-user-001",
+    email: "dev@openclaw.local",
+    name: "Dev User",
+  },
+} as unknown as User;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(DEV_MODE ? DEV_USER : null);
+  const [isLoading, setIsLoading] = useState(!DEV_MODE);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (DEV_MODE) return;
+
     userManager
       .getUser()
       .then((u) => {
@@ -50,10 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async () => {
+    if (DEV_MODE) return;
     await userManager.signinRedirect();
   }, []);
 
   const logout = useCallback(async () => {
+    if (DEV_MODE) {
+      setUser(null);
+      return;
+    }
     await userManager.signoutRedirect();
   }, []);
 

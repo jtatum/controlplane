@@ -13,7 +13,71 @@ declare module "fastify" {
   }
 }
 
+const DEV_USER = {
+  externalId: "dev-user-001",
+  email: "dev@openclaw.local",
+  displayName: "Dev User",
+};
+
+async function ensureDevUser() {
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.externalId, DEV_USER.externalId))
+    .limit(1);
+
+  if (existing) return existing;
+
+  const [created] = await db
+    .insert(users)
+    .values({
+      externalId: DEV_USER.externalId,
+      email: DEV_USER.email,
+      displayName: DEV_USER.displayName,
+      role: "admin",
+    })
+    .returning();
+
+  return created;
+}
+
 async function oidcAuth(app: FastifyInstance) {
+  const devMode = process.env.DEV_MODE === "true";
+
+  app.decorateRequest("userId", "");
+  app.decorateRequest("userEmail", "");
+  app.decorateRequest("dbUser", null);
+
+  if (devMode) {
+    app.log.warn("DEV_MODE enabled — authentication is bypassed");
+
+    let devUser: typeof users.$inferSelect | null = null;
+
+    app.addHook(
+      "onRequest",
+      async (request: FastifyRequest, _reply: FastifyReply) => {
+        if (request.url === "/health") return;
+
+        request.userId = DEV_USER.externalId;
+        request.userEmail = DEV_USER.email;
+      },
+    );
+
+    app.addHook(
+      "preHandler",
+      async (request: FastifyRequest, _reply: FastifyReply) => {
+        if (request.url === "/health") return;
+
+        if (!devUser) {
+          devUser = await ensureDevUser();
+        }
+        request.dbUser = devUser;
+      },
+    );
+
+    return;
+  }
+
   const issuer = process.env.OIDC_ISSUER;
   if (!issuer) {
     throw new Error("OIDC_ISSUER environment variable is required");
@@ -34,10 +98,6 @@ async function oidcAuth(app: FastifyInstance) {
     }
     return jwks;
   }
-
-  app.decorateRequest("userId", "");
-  app.decorateRequest("userEmail", "");
-  app.decorateRequest("dbUser", null);
 
   app.addHook(
     "onRequest",

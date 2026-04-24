@@ -1,7 +1,7 @@
 import { UserManager, WebStorageStateStore } from "oidc-client-ts";
 
-const authority = import.meta.env.VITE_OIDC_AUTHORITY ?? "";
-const clientId = import.meta.env.VITE_OIDC_CLIENT_ID ?? "";
+const authority = import.meta.env.VITE_OIDC_AUTHORITY ?? "https://localhost";
+const clientId = import.meta.env.VITE_OIDC_CLIENT_ID ?? "unused";
 const redirectUri = `${window.location.origin}/auth/callback`;
 const postLogoutRedirectUri = window.location.origin;
 
@@ -13,5 +13,5 @@ export const userManager = new UserManager({
   response_type: "code",
   scope: "openid profile email",
   userStore: new WebStorageStateStore({ store: window.sessionStorage }),
-  automaticSilentRenew: true,
+  automaticSilentRenew: import.meta.env.VITE_DEV_MODE !== "true",
 });

@@ -1,12 +1,17 @@
 import { userManager } from "../auth/config.js";
 
+const DEV_MODE = import.meta.env.VITE_DEV_MODE === "true";
+
 export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
-  const user = await userManager.getUser();
   const headers = new Headers(init?.headers);
-  if (user?.access_token) {
-    headers.set("Authorization", `Bearer ${user.access_token}`);
-  }
   headers.set("Accept", "application/json");
+
+  if (!DEV_MODE) {
+    const user = await userManager.getUser();
+    if (user?.access_token) {
+      headers.set("Authorization", `Bearer ${user.access_token}`);
+    }
+  }
 
   const res = await fetch(`/api${path}`, { ...init, headers });
   if (!res.ok) {
