@@ -3,6 +3,8 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { agentEmailRoutes } from "./routes/agent-email.js";
 import { humanEmailRoutes } from "./routes/human-email.js";
+import oidcAuth from "./auth.js";
+import agentRoutes from "./routes/agents.js";
 
 export async function createApp() {
   const app = Fastify({ logger: true });
@@ -14,6 +16,8 @@ export async function createApp() {
 
   await app.register(agentEmailRoutes, { prefix: "/api" });
   await app.register(humanEmailRoutes, { prefix: "/api" });
+  await app.register(oidcAuth);
+  await app.register(agentRoutes);
 
   return app;
 }

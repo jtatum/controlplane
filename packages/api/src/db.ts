@@ -1,10 +1,9 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
 import * as schema from "@controlplane/shared";
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool, { schema });
+export const db = drizzle(
+  process.env.DATABASE_URL ??
+    "postgresql://controlplane:controlplane@localhost:5432/controlplane",
+  { schema },
+);
 export type Db = typeof db;
