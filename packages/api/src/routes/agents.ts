@@ -3,7 +3,6 @@ import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   agents,
-  users,
   openclawVersions,
   CreateAgentSchema,
   AgentConfigSchema,
@@ -49,16 +48,7 @@ export default async function agentRoutes(app: FastifyInstance) {
     }
 
     const { name, agentName, environment, instanceType, config } = body.data;
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.externalId, request.userId))
-      .limit(1);
-
-    if (!user) {
-      return reply.code(403).send({ error: "User not registered" });
-    }
+    const user = request.dbUser!;
 
     const defaultVersion = await db
       .select()
@@ -90,16 +80,7 @@ export default async function agentRoutes(app: FastifyInstance) {
     }
 
     const { status, environment, limit, offset } = query.data;
-
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.externalId, request.userId))
-      .limit(1);
-
-    if (!user) {
-      return reply.code(403).send({ error: "User not registered" });
-    }
+    const user = request.dbUser!;
 
     const conditions = [eq(agents.ownerId, user.id)];
     if (status) conditions.push(eq(agents.status, status));
@@ -136,15 +117,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid agent ID" });
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.externalId, request.userId))
-      .limit(1);
-
-    if (!user) {
-      return reply.code(403).send({ error: "User not registered" });
-    }
+    const user = request.dbUser!;
 
     const [row] = await db
       .select({
@@ -178,15 +151,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "No fields to update" });
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.externalId, request.userId))
-      .limit(1);
-
-    if (!user) {
-      return reply.code(403).send({ error: "User not registered" });
-    }
+    const user = request.dbUser!;
 
     const [existing] = await db
       .select()
@@ -202,7 +167,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(409).send({ error: "Cannot update a terminated agent" });
     }
 
-    const updateFields: Record<string, unknown> = {
+    const updateFields: Partial<typeof agents.$inferInsert> = {
       updatedAt: new Date(),
     };
     if (body.data.name !== undefined) updateFields.name = body.data.name;
@@ -231,15 +196,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid agent ID" });
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.externalId, request.userId))
-      .limit(1);
-
-    if (!user) {
-      return reply.code(403).send({ error: "User not registered" });
-    }
+    const user = request.dbUser!;
 
     const [existing] = await db
       .select()

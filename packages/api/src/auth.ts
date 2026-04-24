@@ -1,11 +1,15 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
 import * as jose from "jose";
+import { eq } from "drizzle-orm";
+import { users } from "@controlplane/shared";
+import { db } from "./db.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     userId: string;
     userEmail: string;
+    dbUser: typeof users.$inferSelect | null;
   }
 }
 
@@ -16,6 +20,10 @@ async function oidcAuth(app: FastifyInstance) {
   }
 
   const audience = process.env.OIDC_CLIENT_ID;
+  if (!audience) {
+    throw new Error("OIDC_CLIENT_ID environment variable is required");
+  }
+
   let jwks: ReturnType<typeof jose.createRemoteJWKSet> | null = null;
 
   function getJWKS() {
@@ -29,6 +37,7 @@ async function oidcAuth(app: FastifyInstance) {
 
   app.decorateRequest("userId", "");
   app.decorateRequest("userEmail", "");
+  app.decorateRequest("dbUser", null);
 
   app.addHook(
     "onRequest",
@@ -52,7 +61,27 @@ async function oidcAuth(app: FastifyInstance) {
         request.userEmail = (payload.email as string) ?? "";
       } catch {
         reply.code(401).send({ error: "Invalid token" });
+        return;
       }
+    },
+  );
+  app.addHook(
+    "preHandler",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (request.url === "/health") return;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.externalId, request.userId))
+        .limit(1);
+
+      if (!user) {
+        reply.code(403).send({ error: "User not registered" });
+        return;
+      }
+
+      request.dbUser = user;
     },
   );
 }

@@ -17,7 +17,7 @@ export async function createApp() {
   await app.register(agentEmailRoutes, { prefix: "/api" });
   await app.register(humanEmailRoutes, { prefix: "/api" });
   await app.register(oidcAuth);
-  await app.register(agentRoutes);
+  await app.register(agentRoutes, { prefix: "/api" });
 
   return app;
 }
