@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import {
   emailMessages,
   emailAttachments,
@@ -11,14 +11,21 @@ import {
 import type { AgentEmailMessage } from "@controlplane/shared";
 import { db } from "../db.js";
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (value === undefined) return fallback;
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
 export async function agentEmailRoutes(app: FastifyInstance) {
   app.get<{
     Params: { agentId: string };
     Querystring: { limit?: string; offset?: string };
-  }>("/agents/:agentId/email/inbox", async (request, reply) => {
+  }>("/agents/:agentId/emails/inbox", async (request, reply) => {
     const { agentId } = request.params;
-    const limit = Math.min(parseInt(request.query.limit ?? "50", 10), 100);
-    const offset = parseInt(request.query.offset ?? "0", 10);
+    const limit = Math.min(parsePositiveInt(request.query.limit, 50), 100);
+    const offset = parsePositiveInt(request.query.offset, 0);
 
     const agent = await db
       .select({ id: agents.id })
@@ -43,41 +50,54 @@ export async function agentEmailRoutes(app: FastifyInstance) {
       .limit(limit)
       .offset(offset);
 
-    const result: AgentEmailMessage[] = await Promise.all(
-      messages.map(async (msg) => {
-        const attachments = await db
-          .select({
-            id: emailAttachments.id,
-            messageId: emailAttachments.messageId,
-            filename: emailAttachments.filename,
-            contentType: emailAttachments.contentType,
-            sizeBytes: emailAttachments.sizeBytes,
-            s3Key: emailAttachments.s3Key,
-          })
-          .from(emailAttachments)
-          .where(eq(emailAttachments.messageId, msg.id));
+    const messageIds = messages.map((m) => m.id);
+    const attachmentsByMessage = new Map<
+      string,
+      { id: string; messageId: string; filename: string; contentType: string; sizeBytes: number; s3Key: string }[]
+    >();
 
-        return {
-          id: msg.id,
-          direction: msg.direction,
-          sender: msg.sender,
-          recipients: msg.recipients,
-          cc: msg.cc,
-          subject: msg.subject,
-          bodyText: msg.bodyText,
-          bodyHtml: msg.bodyHtml,
-          attachments: attachments.map((a) => ({
-            id: a.id,
-            messageId: a.messageId,
-            filename: a.filename,
-            contentType: a.contentType,
-            sizeBytes: a.sizeBytes,
-            downloadUrl: `/api/email/attachments/${a.id}`,
-          })),
-          receivedAt: msg.createdAt.toISOString(),
-        };
-      }),
-    );
+    if (messageIds.length > 0) {
+      const allAttachments = await db
+        .select({
+          id: emailAttachments.id,
+          messageId: emailAttachments.messageId,
+          filename: emailAttachments.filename,
+          contentType: emailAttachments.contentType,
+          sizeBytes: emailAttachments.sizeBytes,
+          s3Key: emailAttachments.s3Key,
+        })
+        .from(emailAttachments)
+        .where(inArray(emailAttachments.messageId, messageIds));
+
+      for (const a of allAttachments) {
+        const list = attachmentsByMessage.get(a.messageId) ?? [];
+        list.push(a);
+        attachmentsByMessage.set(a.messageId, list);
+      }
+    }
+
+    const result: AgentEmailMessage[] = messages.map((msg) => {
+      const attachments = attachmentsByMessage.get(msg.id) ?? [];
+      return {
+        id: msg.id,
+        direction: msg.direction,
+        sender: msg.sender,
+        recipients: msg.recipients,
+        cc: msg.cc,
+        subject: msg.subject,
+        bodyText: msg.bodyText,
+        bodyHtml: msg.bodyHtml,
+        attachments: attachments.map((a) => ({
+          id: a.id,
+          messageId: a.messageId,
+          filename: a.filename,
+          contentType: a.contentType,
+          sizeBytes: a.sizeBytes,
+          downloadUrl: `/api/emails/attachments/${a.id}`,
+        })),
+        receivedAt: msg.createdAt.toISOString(),
+      };
+    });
 
     return { messages: result, limit, offset };
   });
@@ -85,7 +105,7 @@ export async function agentEmailRoutes(app: FastifyInstance) {
   app.post<{
     Params: { agentId: string };
     Body: unknown;
-  }>("/agents/:agentId/email/send", async (request, reply) => {
+  }>("/agents/:agentId/emails/send", async (request, reply) => {
     const { agentId } = request.params;
 
     const parsed = SendEmailSchema.safeParse(request.body);

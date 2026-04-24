@@ -9,6 +9,13 @@ import {
 import type { EmailMessage } from "@controlplane/shared";
 import { db } from "../db.js";
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (value === undefined) return fallback;
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
 export async function humanEmailRoutes(app: FastifyInstance) {
   app.get<{
     Querystring: {
@@ -17,11 +24,11 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       limit?: string;
       offset?: string;
     };
-  }>("/email/review", async (request, reply) => {
+  }>("/emails/review", async (request, reply) => {
     const status = request.query.status ?? "pending";
     const agentId = request.query.agentId;
-    const limit = Math.min(parseInt(request.query.limit ?? "50", 10), 100);
-    const offset = parseInt(request.query.offset ?? "0", 10);
+    const limit = Math.min(parsePositiveInt(request.query.limit, 50), 100);
+    const offset = parsePositiveInt(request.query.offset, 0);
 
     if (!["pending", "approved", "rejected"].includes(status)) {
       return reply
@@ -100,7 +107,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
 
   app.get<{
     Params: { messageId: string };
-  }>("/email/:messageId", async (request, reply) => {
+  }>("/emails/:messageId", async (request, reply) => {
     const { messageId } = request.params;
 
     const [message] = await db
@@ -147,7 +154,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
   app.post<{
     Params: { messageId: string };
     Body: unknown;
-  }>("/email/:messageId/review", async (request, reply) => {
+  }>("/emails/:messageId/review", async (request, reply) => {
     const { messageId } = request.params;
 
     const parsed = ReviewEmailSchema.safeParse(request.body);
@@ -158,45 +165,43 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       });
     }
 
-    const [message] = await db
-      .select({
-        id: emailMessages.id,
-        reviewStatus: emailMessages.reviewStatus,
-      })
-      .from(emailMessages)
-      .where(eq(emailMessages.id, messageId))
-      .limit(1);
-
-    if (!message) {
-      return reply.status(404).send({ error: "Message not found" });
-    }
-
-    if (message.reviewStatus !== "pending") {
-      return reply.status(409).send({
-        error: `Message already reviewed as '${message.reviewStatus}'`,
-      });
-    }
-
-    // TODO: extract userId from auth context once auth middleware exists
-    const reviewerId = null;
-
     const [updated] = await db
       .update(emailMessages)
       .set({
         reviewStatus: parsed.data.status,
-        reviewedBy: reviewerId,
+        reviewedBy: request.userId ?? null,
         reviewedAt: new Date(),
         reviewNote: parsed.data.note ?? null,
-        visibleToAgent:
-          parsed.data.status === "approved" ? true : false,
+        visibleToAgent: parsed.data.status === "approved",
         updatedAt: new Date(),
       })
-      .where(eq(emailMessages.id, messageId))
+      .where(
+        and(
+          eq(emailMessages.id, messageId),
+          eq(emailMessages.reviewStatus, "pending"),
+        ),
+      )
       .returning({
         id: emailMessages.id,
         reviewStatus: emailMessages.reviewStatus,
         reviewedAt: emailMessages.reviewedAt,
       });
+
+    if (!updated) {
+      const [existing] = await db
+        .select({ id: emailMessages.id, reviewStatus: emailMessages.reviewStatus })
+        .from(emailMessages)
+        .where(eq(emailMessages.id, messageId))
+        .limit(1);
+
+      if (!existing) {
+        return reply.status(404).send({ error: "Message not found" });
+      }
+
+      return reply.status(409).send({
+        error: `Message already reviewed as '${existing.reviewStatus}'`,
+      });
+    }
 
     return {
       id: updated.id,

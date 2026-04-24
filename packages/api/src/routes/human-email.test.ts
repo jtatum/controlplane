@@ -17,6 +17,7 @@ const mockedDb = vi.mocked(db);
 
 function buildApp() {
   const app = Fastify();
+  app.decorateRequest("userId", "reviewer-1");
   app.register(humanEmailRoutes);
   return app;
 }
@@ -30,11 +31,11 @@ describe("human email routes", () => {
     await app.ready();
   });
 
-  describe("GET /email/review", () => {
+  describe("GET /emails/review", () => {
     it("returns 400 for invalid status filter", async () => {
       const res = await app.inject({
         method: "GET",
-        url: "/email/review?status=invalid",
+        url: "/emails/review?status=invalid",
       });
 
       expect(res.statusCode).toBe(400);
@@ -82,7 +83,7 @@ describe("human email routes", () => {
 
       const res = await app.inject({
         method: "GET",
-        url: "/email/review",
+        url: "/emails/review",
       });
 
       expect(res.statusCode).toBe(200);
@@ -91,9 +92,39 @@ describe("human email routes", () => {
       expect(body.total).toBe(1);
       expect(body.messages[0].reviewStatus).toBe("pending");
     });
+
+    it("treats NaN limit/offset as defaults", async () => {
+      const messagesSelect = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        offset: vi.fn().mockResolvedValue([]),
+      };
+
+      const countSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([{ count: 0 }]),
+      };
+
+      mockedDb.select
+        .mockReturnValueOnce(messagesSelect as any)
+        .mockReturnValueOnce(countSelect as any);
+
+      const res = await app.inject({
+        method: "GET",
+        url: "/emails/review?limit=abc&offset=xyz",
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.limit).toBe(50);
+      expect(body.offset).toBe(0);
+    });
   });
 
-  describe("GET /email/:messageId", () => {
+  describe("GET /emails/:messageId", () => {
     it("returns 404 for unknown message", async () => {
       const selectChain = {
         from: vi.fn().mockReturnThis(),
@@ -104,7 +135,7 @@ describe("human email routes", () => {
 
       const res = await app.inject({
         method: "GET",
-        url: "/email/00000000-0000-0000-0000-000000000001",
+        url: "/emails/00000000-0000-0000-0000-000000000001",
       });
 
       expect(res.statusCode).toBe(404);
@@ -158,7 +189,7 @@ describe("human email routes", () => {
 
       const res = await app.inject({
         method: "GET",
-        url: "/email/msg-1",
+        url: "/emails/msg-1",
       });
 
       expect(res.statusCode).toBe(200);
@@ -169,11 +200,11 @@ describe("human email routes", () => {
     });
   });
 
-  describe("POST /email/:messageId/review", () => {
+  describe("POST /emails/:messageId/review", () => {
     it("returns 400 for invalid body", async () => {
       const res = await app.inject({
         method: "POST",
-        url: "/email/msg-1/review",
+        url: "/emails/msg-1/review",
         payload: { status: "invalid" },
       });
 
@@ -181,6 +212,13 @@ describe("human email routes", () => {
     });
 
     it("returns 404 for unknown message", async () => {
+      const updateChain = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      };
+      mockedDb.update.mockReturnValueOnce(updateChain as any);
+
       const selectChain = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -190,7 +228,7 @@ describe("human email routes", () => {
 
       const res = await app.inject({
         method: "POST",
-        url: "/email/msg-1/review",
+        url: "/emails/msg-1/review",
         payload: { status: "approved" },
       });
 
@@ -198,6 +236,13 @@ describe("human email routes", () => {
     });
 
     it("returns 409 for already reviewed message", async () => {
+      const updateChain = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([]),
+      };
+      mockedDb.update.mockReturnValueOnce(updateChain as any);
+
       const selectChain = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -209,23 +254,16 @@ describe("human email routes", () => {
 
       const res = await app.inject({
         method: "POST",
-        url: "/email/msg-1/review",
+        url: "/emails/msg-1/review",
         payload: { status: "rejected", note: "Too late" },
       });
 
       expect(res.statusCode).toBe(409);
+      expect(res.json().error).toContain("already reviewed");
     });
 
     it("approves a pending message", async () => {
       const now = new Date();
-      const selectChain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", reviewStatus: "pending" },
-        ]),
-      };
-
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -233,18 +271,37 @@ describe("human email routes", () => {
           { id: "msg-1", reviewStatus: "approved", reviewedAt: now },
         ]),
       };
-
-      mockedDb.select.mockReturnValueOnce(selectChain as any);
       mockedDb.update.mockReturnValueOnce(updateChain as any);
 
       const res = await app.inject({
         method: "POST",
-        url: "/email/msg-1/review",
+        url: "/emails/msg-1/review",
         payload: { status: "approved", note: "Looks good" },
       });
 
       expect(res.statusCode).toBe(200);
       expect(res.json().reviewStatus).toBe("approved");
+    });
+
+    it("rejects a pending message", async () => {
+      const now = new Date();
+      const updateChain = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([
+          { id: "msg-1", reviewStatus: "rejected", reviewedAt: now },
+        ]),
+      };
+      mockedDb.update.mockReturnValueOnce(updateChain as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/emails/msg-1/review",
+        payload: { status: "rejected", note: "Not appropriate" },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().reviewStatus).toBe("rejected");
     });
   });
 });
