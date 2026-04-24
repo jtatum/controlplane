@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthContext.js";
 
 const navItems = [
   { to: "/", label: "Agents" },
+  { to: "/emails/review", label: "Email Review" },
 ] as const;
 
 export function Layout() {

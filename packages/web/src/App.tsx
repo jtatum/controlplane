@@ -6,6 +6,7 @@ import { CallbackPage } from "./auth/CallbackPage.js";
 import { Layout } from "./components/Layout.js";
 import { AgentListPage } from "./pages/AgentListPage.js";
 import { AgentDetailPage } from "./pages/AgentDetailPage.js";
+import { EmailReviewPage } from "./pages/EmailReviewPage.js";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export function App() {
             >
               <Route index element={<AgentListPage />} />
               <Route path="agents/:id" element={<AgentDetailPage />} />
+              <Route path="emails/review" element={<EmailReviewPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

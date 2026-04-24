@@ -1,6 +1,6 @@
 import { userManager } from "../auth/config.js";
 
-async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   const user = await userManager.getUser();
   const headers = new Headers(init?.headers);
   if (user?.access_token) {
