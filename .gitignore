@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+coverage/
+.vite/
+.runtime/
+daemon.json
+overseer.json
+rigs.json
+town.json
