@@ -14,11 +14,13 @@
     "@aws-sdk/client-ec2": "^3.700.0",
     "@aws-sdk/client-ssm": "^3.700.0",
     "@aws-sdk/client-ses": "^3.700.0",
+    "pg": "^8.13.0",
     "@temporalio/activity": "^1.11.0",
     "@temporalio/worker": "^1.11.0",
     "@temporalio/workflow": "^1.11.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.0",
     "tsx": "^4.19.0"
   }
 }

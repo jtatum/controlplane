@@ -137,7 +137,13 @@ importers:
       '@temporalio/workflow':
         specifier: ^1.11.0
         version: 1.16.1
+      pg:
+        specifier: ^8.13.0
+        version: 8.20.0
     devDependencies:
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
       tsx:
         specifier: ^4.19.0
         version: 4.21.0
