@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@controlplane/shared": "workspace:*",
     "@tanstack/react-query": "^5.60.0",
     "oidc-client-ts": "^3.1.0",
     "react": "^19.0.0",

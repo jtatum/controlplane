@@ -82,6 +82,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@controlplane/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@tanstack/react-query':
         specifier: ^5.60.0
         version: 5.100.1(react@19.2.5)
