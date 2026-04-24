@@ -38,16 +38,25 @@ importers:
       '@temporalio/client':
         specifier: ^1.11.0
         version: 1.16.1
+      drizzle-orm:
+        specifier: ^0.38.0
+        version: 0.38.4(@types/pg@8.20.0)(@types/react@19.2.14)(pg@8.20.0)(react@19.2.5)
       fastify:
         specifier: ^5.2.0
         version: 5.8.5
       jose:
         specifier: ^6.0.0
         version: 6.2.2
+      pg:
+        specifier: ^8.13.0
+        version: 8.20.0
       zod:
         specifier: ^3.24.0
         version: 3.25.76
     devDependencies:
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.20.0
       tsx:
         specifier: ^4.19.0
         version: 4.21.0
