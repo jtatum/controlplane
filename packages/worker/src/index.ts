@@ -14,7 +14,12 @@ async function run() {
     connection,
     namespace: "default",
     taskQueue: TASK_QUEUE,
-    workflowsPath: new URL("./workflows.js", import.meta.url).pathname,
+    workflowsPath: new URL(
+      import.meta.url.endsWith(".ts")
+        ? "./workflows.ts"
+        : "./workflows.js",
+      import.meta.url,
+    ).pathname,
     activities,
   });
 
