@@ -2,13 +2,6 @@ import { useState } from "react";
 import { useAuditLog } from "../hooks/useAuditLog.js";
 import type { AuditLogFilters } from "../hooks/useAuditLog.js";
 
-const inputStyle: React.CSSProperties = {
-  padding: "0.4rem",
-  border: "1px solid #ccc",
-  borderRadius: 4,
-  fontSize: "0.85rem",
-};
-
 const ACTIONS = [
   "agent.create",
   "agent.update",
@@ -16,6 +9,21 @@ const ACTIONS = [
   "email.review.approved",
   "email.review.rejected",
 ];
+
+const inputClasses =
+  "px-3 py-1.5 rounded border border-gray-300 text-sm bg-white focus:outline-2 focus:outline-blue-500 focus:border-blue-500";
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-gray-100">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <td key={i} className="px-3 py-2.5">
+          <div className="h-4 bg-gray-200 rounded animate-pulse" />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
 export function AuditLogPage() {
   const [filters, setFilters] = useState<AuditLogFilters>({});
@@ -36,25 +44,13 @@ export function AuditLogPage() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Audit Log</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Audit Log</h1>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
-          alignItems: "end",
-        }}
-      >
+      <div className="flex gap-3 mb-4 flex-wrap items-end">
         <div>
-          <label
-            style={{ display: "block", fontSize: "0.75rem", marginBottom: 2 }}
-          >
-            Action
-          </label>
+          <label className="block text-xs text-gray-500 mb-0.5">Action</label>
           <select
-            style={inputStyle}
+            className={inputClasses}
             value={actionFilter}
             onChange={(e) => {
               setActionFilter(e.target.value);
@@ -71,13 +67,11 @@ export function AuditLogPage() {
         </div>
 
         <div>
-          <label
-            style={{ display: "block", fontSize: "0.75rem", marginBottom: 2 }}
-          >
+          <label className="block text-xs text-gray-500 mb-0.5">
             Agent ID
           </label>
           <input
-            style={inputStyle}
+            className={inputClasses}
             placeholder="Filter by agent ID"
             value={filters.agentId ?? ""}
             onChange={(e) => {
@@ -91,14 +85,10 @@ export function AuditLogPage() {
         </div>
 
         <div>
-          <label
-            style={{ display: "block", fontSize: "0.75rem", marginBottom: 2 }}
-          >
-            From
-          </label>
+          <label className="block text-xs text-gray-500 mb-0.5">From</label>
           <input
             type="date"
-            style={inputStyle}
+            className={inputClasses}
             value={filters.from ?? ""}
             onChange={(e) => {
               setFilters((f) => ({
@@ -111,14 +101,10 @@ export function AuditLogPage() {
         </div>
 
         <div>
-          <label
-            style={{ display: "block", fontSize: "0.75rem", marginBottom: 2 }}
-          >
-            To
-          </label>
+          <label className="block text-xs text-gray-500 mb-0.5">To</label>
           <input
             type="date"
-            style={inputStyle}
+            className={inputClasses}
             value={filters.to ?? ""}
             onChange={(e) => {
               setFilters((f) => ({
@@ -131,109 +117,106 @@ export function AuditLogPage() {
         </div>
       </div>
 
-      {isLoading && <p>Loading audit log...</p>}
-      {error && <p>Error loading audit log: {String(error)}</p>}
-
-      {data && (
-        <>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              background: "#fff",
-              borderRadius: 8,
-              overflow: "hidden",
-              fontSize: "0.9rem",
-            }}
-          >
+      {isLoading && (
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
             <thead>
-              <tr style={{ background: "#e9ecef", textAlign: "left" }}>
-                <th style={{ padding: "0.6rem 0.75rem" }}>Time</th>
-                <th style={{ padding: "0.6rem 0.75rem" }}>Action</th>
-                <th style={{ padding: "0.6rem 0.75rem" }}>Actor</th>
-                <th style={{ padding: "0.6rem 0.75rem" }}>Resource</th>
-                <th style={{ padding: "0.6rem 0.75rem" }}>Detail</th>
+              <tr className="bg-gray-50 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2.5">Time</th>
+                <th className="px-3 py-2.5">Action</th>
+                <th className="px-3 py-2.5">Actor</th>
+                <th className="px-3 py-2.5">Resource</th>
+                <th className="px-3 py-2.5">Detail</th>
               </tr>
             </thead>
             <tbody>
-              {data.data.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    style={{ padding: "1rem", textAlign: "center", color: "#888" }}
-                  >
-                    No audit entries found.
-                  </td>
-                </tr>
-              ) : (
-                data.data.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    style={{ borderBottom: "1px solid #dee2e6" }}
-                  >
-                    <td
-                      style={{
-                        padding: "0.5rem 0.75rem",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {new Date(entry.createdAt).toLocaleString()}
-                    </td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      <code style={{ fontSize: "0.8rem" }}>{entry.action}</code>
-                    </td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      {entry.actorEmail ?? entry.actorId ?? "system"}
-                    </td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      <span style={{ fontSize: "0.8rem", color: "#666" }}>
-                        {entry.resourceType}
-                      </span>{" "}
-                      <code style={{ fontSize: "0.75rem" }}>
-                        {entry.resourceId?.slice(0, 8) ?? "—"}
-                      </code>
-                    </td>
-                    <td
-                      style={{
-                        padding: "0.5rem 0.75rem",
-                        fontSize: "0.8rem",
-                        color: "#555",
-                        maxWidth: 300,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {JSON.stringify(entry.detail)}
-                    </td>
-                  </tr>
-                ))
-              )}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonRow key={i} />
+              ))}
             </tbody>
           </table>
+        </div>
+      )}
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "0.75rem",
-              fontSize: "0.85rem",
-            }}
-          >
+      {error && (
+        <p className="text-red-600">
+          Error loading audit log: {String(error)}
+        </p>
+      )}
+
+      {data && (
+        <>
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2.5">Time</th>
+                  <th className="px-3 py-2.5">Action</th>
+                  <th className="px-3 py-2.5">Actor</th>
+                  <th className="px-3 py-2.5">Resource</th>
+                  <th className="px-3 py-2.5">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.data.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="p-4 text-center text-gray-400"
+                    >
+                      No audit entries found.
+                    </td>
+                  </tr>
+                ) : (
+                  data.data.map((entry) => (
+                    <tr
+                      key={entry.id}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-3 py-2 whitespace-nowrap text-gray-500">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2">
+                        <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                          {entry.action}
+                        </code>
+                      </td>
+                      <td className="px-3 py-2">
+                        {entry.actorEmail ?? entry.actorId ?? "system"}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="text-xs text-gray-500">
+                          {entry.resourceType}
+                        </span>{" "}
+                        <code className="text-xs">
+                          {entry.resourceId?.slice(0, 8) ?? "—"}
+                        </code>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-500 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">
+                        {JSON.stringify(entry.detail)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-between items-center mt-3 text-sm text-gray-600">
             <span>
               {data.total} entries total — page {page + 1} of{" "}
               {Math.max(totalPages, 1)}
             </span>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div className="flex gap-2">
               <button
                 type="button"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
-                style={{
-                  padding: "0.3rem 0.75rem",
-                  cursor: page === 0 ? "not-allowed" : "pointer",
-                }}
+                className={`px-3 py-1.5 rounded border text-sm transition-colors ${
+                  page === 0
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                }`}
               >
                 Previous
               </button>
@@ -241,10 +224,11 @@ export function AuditLogPage() {
                 type="button"
                 disabled={page + 1 >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                style={{
-                  padding: "0.3rem 0.75rem",
-                  cursor: page + 1 >= totalPages ? "not-allowed" : "pointer",
-                }}
+                className={`px-3 py-1.5 rounded border text-sm transition-colors ${
+                  page + 1 >= totalPages
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                }`}
               >
                 Next
               </button>
