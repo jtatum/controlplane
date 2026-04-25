@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AgentSummary, AgentDetail } from "@controlplane/shared";
-import { fetchJson } from "./api.js";
+import { authFetch, fetchJson } from "./api.js";
 
 interface AgentListResponse {
   data: AgentSummary[];
@@ -24,5 +24,22 @@ export function useAgent(id: string) {
     queryKey: ["agents", id],
     queryFn: () => fetchJson<AgentDetail>(`/agents/${encodeURIComponent(id)}`),
     enabled: !!id,
+  });
+}
+
+export function useTerminateAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (agentId: string) => {
+      const res = await authFetch(`/agents/${encodeURIComponent(agentId)}/terminate`, {
+        method: "POST",
+      });
+      return res.json() as Promise<AgentDetail>;
+    },
+    onSuccess: (_data, agentId) => {
+      queryClient.invalidateQueries({ queryKey: ["agents", agentId] });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+    },
   });
 }

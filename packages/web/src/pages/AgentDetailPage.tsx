@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router";
-import { useAgent } from "../hooks/useAgents.js";
+import { useAgent, useTerminateAgent } from "../hooks/useAgents.js";
 import { StatusBadge } from "../components/StatusBadge.js";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -21,13 +22,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+const TERMINAL_STATUSES = new Set(["terminated", "stopping", "stopped"]);
+
 export function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: agent, isLoading, error } = useAgent(id!);
+  const terminateMutation = useTerminateAgent();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (isLoading) return <p>Loading agent...</p>;
   if (error) return <p>Error loading agent: {String(error)}</p>;
   if (!agent) return <p>Agent not found.</p>;
+
+  const canTerminate = !TERMINAL_STATUSES.has(agent.status) && !terminateMutation.isPending;
 
   return (
     <div>
@@ -47,7 +54,89 @@ export function AgentDetailPage() {
       >
         <h1 style={{ margin: 0 }}>{agent.name}</h1>
         <StatusBadge status={agent.status} />
+        <button
+          type="button"
+          disabled={!canTerminate}
+          onClick={() => setShowConfirm(true)}
+          style={{
+            marginLeft: "auto",
+            padding: "0.5rem 1.2rem",
+            borderRadius: 4,
+            border: "none",
+            background: canTerminate ? "#dc3545" : "#6c757d",
+            color: "#fff",
+            cursor: canTerminate ? "pointer" : "not-allowed",
+            fontWeight: 600,
+            opacity: canTerminate ? 1 : 0.6,
+          }}
+        >
+          {terminateMutation.isPending ? "Terminating..." : "Terminate"}
+        </button>
       </div>
+
+      {showConfirm && (
+        <div
+          role="dialog"
+          aria-label="Confirm termination"
+          style={{
+            background: "#fff3cd",
+            border: "1px solid #ffc107",
+            borderRadius: 8,
+            padding: "1rem 1.5rem",
+            marginBottom: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <span>
+            Terminate <strong>{agent.name}</strong>? This action cannot be undone.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              terminateMutation.mutate(agent.id);
+              setShowConfirm(false);
+            }}
+            style={{
+              padding: "0.4rem 1rem",
+              borderRadius: 4,
+              border: "none",
+              background: "#dc3545",
+              color: "#fff",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowConfirm(false)}
+            style={{
+              padding: "0.4rem 1rem",
+              borderRadius: 4,
+              border: "1px solid #ced4da",
+              background: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {terminateMutation.isSuccess && (
+        <div style={{ background: "#d1e7dd", border: "1px solid #198754", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+          Agent termination initiated. Status will update shortly.
+        </div>
+      )}
+
+      {terminateMutation.isError && (
+        <div style={{ background: "#f8d7da", border: "1px solid #dc3545", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+          Termination failed: {String(terminateMutation.error)}
+        </div>
+      )}
 
       <div
         style={{
