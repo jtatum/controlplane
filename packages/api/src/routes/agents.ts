@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   agents,
@@ -51,6 +51,20 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const { name, agentName, environment, config } = body.data;
     const user = request.dbUser!;
+
+    if (user.role !== "admin") {
+      const [existing] = await db
+        .select({ id: agents.id })
+        .from(agents)
+        .where(and(eq(agents.ownerId, user.id), ne(agents.status, "terminated")))
+        .limit(1);
+
+      if (existing) {
+        return reply.code(409).send({
+          error: "You already have an active agent. Terminate it before creating a new one.",
+        });
+      }
+    }
 
     const defaultVersion = await db
       .select()

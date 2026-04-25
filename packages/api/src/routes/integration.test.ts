@@ -126,6 +126,67 @@ describe("POST /api/agents", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("Validation failed");
   });
+
+  it("returns 409 when non-admin user already has an active agent", async () => {
+    await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+    const freshApp = await createFreshApp();
+
+    const first = await freshApp.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "First Agent", agentName: "first-agent", environment: "dev" },
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await freshApp.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "Second Agent", agentName: "second-agent", environment: "dev" },
+    });
+    expect(second.statusCode).toBe(409);
+    expect(second.json().error).toContain("already have an active agent");
+
+    await freshApp.close();
+  });
+
+  it("allows non-admin to create again after terminating previous agent", async () => {
+    await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+    const freshApp = await createFreshApp();
+
+    const first = await freshApp.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "First Agent", agentName: "term-first", environment: "dev" },
+    });
+    expect(first.statusCode).toBe(201);
+
+    await pool.query("UPDATE agents SET status = 'terminated' WHERE id = $1", [first.json().id]);
+
+    const second = await freshApp.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "Second Agent", agentName: "term-second", environment: "dev" },
+    });
+    expect(second.statusCode).toBe(201);
+
+    await freshApp.close();
+  });
+
+  it("allows admin to create multiple agents", async () => {
+    const first = await app.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "Admin Agent 1", agentName: "admin-first", environment: "dev" },
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await app.inject({
+      method: "POST",
+      url: "/api/agents",
+      payload: { name: "Admin Agent 2", agentName: "admin-second", environment: "dev" },
+    });
+    expect(second.statusCode).toBe(201);
+  });
 });
 
 describe("GET /api/agents", () => {
