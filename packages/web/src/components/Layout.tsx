@@ -14,76 +14,44 @@ export function Layout() {
     user?.profile?.name ?? user?.profile?.email ?? "User";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <nav
-        style={{
-          width: 220,
-          background: "#1a1a2e",
-          color: "#eee",
-          display: "flex",
-          flexDirection: "column",
-          padding: "1rem 0",
-        }}
-      >
-        <div
-          style={{
-            padding: "0 1rem 1rem",
-            borderBottom: "1px solid #333",
-            fontWeight: 600,
-            fontSize: "1.1rem",
-          }}
-        >
+    <div className="flex min-h-screen">
+      <nav className="w-56 bg-slate-900 text-gray-200 flex flex-col py-4">
+        <div className="px-4 pb-4 border-b border-slate-700 font-semibold text-lg">
           OpenClaw
         </div>
 
-        <div style={{ flex: 1, padding: "0.5rem 0" }}>
+        <div className="flex-1 py-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end
-              style={({ isActive }) => ({
-                display: "block",
-                padding: "0.5rem 1rem",
-                color: isActive ? "#fff" : "#aaa",
-                background: isActive ? "#16213e" : "transparent",
-                textDecoration: "none",
-              })}
+              className={({ isActive }) =>
+                `block px-4 py-2 transition-colors ${
+                  isActive
+                    ? "text-white bg-slate-800 border-r-2 border-blue-400 font-medium"
+                    : "text-gray-400 hover:text-white hover:bg-slate-800/50"
+                }`
+              }
             >
               {item.label}
             </NavLink>
           ))}
         </div>
 
-        <div
-          style={{
-            padding: "0.75rem 1rem",
-            borderTop: "1px solid #333",
-            fontSize: "0.85rem",
-          }}
-        >
-          <div style={{ marginBottom: "0.5rem", color: "#ccc" }}>
-            {displayName}
-          </div>
+        <div className="px-4 pt-3 border-t border-slate-700 text-sm">
+          <div className="mb-2 text-gray-300">{displayName}</div>
           <button
             type="button"
             onClick={() => logout()}
-            style={{
-              background: "none",
-              border: "1px solid #555",
-              color: "#aaa",
-              padding: "0.25rem 0.5rem",
-              cursor: "pointer",
-              borderRadius: 4,
-              fontSize: "0.8rem",
-            }}
+            className="border border-slate-600 text-gray-400 px-2 py-1 rounded text-xs hover:text-white hover:border-slate-500 transition-colors cursor-pointer"
           >
             Sign out
           </button>
         </div>
       </nav>
 
-      <main style={{ flex: 1, padding: "1.5rem 2rem", background: "#f5f5f5" }}>
+      <main className="flex-1 p-6 bg-gray-50 lg:p-8">
         <Outlet />
       </main>
     </div>

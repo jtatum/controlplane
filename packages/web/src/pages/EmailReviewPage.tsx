@@ -4,28 +4,16 @@ import { useEmailsForReview, useReviewEmail } from "../hooks/useEmails.js";
 type DirectionFilter = "" | "inbound" | "outbound";
 type StatusFilter = "pending" | "approved" | "rejected";
 
-const cellStyle = { padding: "0.75rem 1rem" } as const;
-
-const reviewStatusColors: Record<string, string> = {
-  pending: "#ffc107",
-  approved: "#198754",
-  rejected: "#dc3545",
+const reviewStatusClasses: Record<string, string> = {
+  pending: "bg-yellow-500",
+  approved: "bg-green-600",
+  rejected: "bg-red-600",
 };
 
 function ReviewBadge({ status }: { status: string }) {
   return (
     <span
-      style={{
-        display: "inline-block",
-        padding: "0.2rem 0.6rem",
-        borderRadius: 12,
-        fontSize: "0.75rem",
-        fontWeight: 600,
-        color: "#fff",
-        background: reviewStatusColors[status] ?? "#6c757d",
-        textTransform: "uppercase",
-        letterSpacing: "0.03em",
-      }}
+      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold text-white uppercase tracking-wide ${reviewStatusClasses[status] ?? "bg-gray-500"}`}
     >
       {status}
     </span>
@@ -33,23 +21,26 @@ function ReviewBadge({ status }: { status: string }) {
 }
 
 function DirectionBadge({ direction }: { direction: string }) {
-  const isInbound = direction === "inbound";
   return (
     <span
-      style={{
-        display: "inline-block",
-        padding: "0.2rem 0.6rem",
-        borderRadius: 12,
-        fontSize: "0.75rem",
-        fontWeight: 600,
-        color: "#fff",
-        background: isInbound ? "#0d6efd" : "#6f42c1",
-        textTransform: "uppercase",
-        letterSpacing: "0.03em",
-      }}
+      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold text-white uppercase tracking-wide ${
+        direction === "inbound" ? "bg-blue-600" : "bg-purple-600"
+      }`}
     >
       {direction}
     </span>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-gray-100">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-4 bg-gray-200 rounded animate-pulse" />
+        </td>
+      ))}
+    </tr>
   );
 }
 
@@ -77,33 +68,20 @@ export function EmailReviewPage() {
     if (expandedId === messageId) setExpandedId(null);
   }
 
-  const selectStyle = {
-    padding: "0.4rem 0.6rem",
-    borderRadius: 4,
-    border: "1px solid #ced4da",
-    fontSize: "0.9rem",
-    background: "#fff",
-  } as const;
+  const selectClasses =
+    "px-3 py-1.5 rounded border border-gray-300 text-sm bg-white focus:outline-2 focus:outline-blue-500 focus:border-blue-500";
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Email Review</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Email Review</h1>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          marginBottom: "1rem",
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <label>
+      <div className="flex gap-4 mb-4 items-center flex-wrap">
+        <label className="text-sm">
           Status:{" "}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            style={selectStyle}
+            className={selectClasses}
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -111,14 +89,14 @@ export function EmailReviewPage() {
           </select>
         </label>
 
-        <label>
+        <label className="text-sm">
           Direction:{" "}
           <select
             value={directionFilter}
             onChange={(e) =>
               setDirectionFilter(e.target.value as DirectionFilter)
             }
-            style={selectStyle}
+            className={selectClasses}
           >
             <option value="">All</option>
             <option value="inbound">Inbound</option>
@@ -126,12 +104,12 @@ export function EmailReviewPage() {
           </select>
         </label>
 
-        <label>
+        <label className="text-sm">
           Agent:{" "}
           <select
             value={agentFilter}
             onChange={(e) => setAgentFilter(e.target.value)}
-            style={selectStyle}
+            className={selectClasses}
           >
             <option value="">All agents</option>
             {agents.map(([id, name]) => (
@@ -143,59 +121,81 @@ export function EmailReviewPage() {
         </label>
 
         {data && (
-          <span style={{ color: "#6c757d", fontSize: "0.85rem" }}>
+          <span className="text-gray-500 text-sm">
             {filtered.length} of {data.total} emails
           </span>
         )}
       </div>
 
-      {isLoading && <p>Loading emails...</p>}
-      {error && <p>Error loading emails: {String(error)}</p>}
-
-      {!isLoading && !error && filtered.length === 0 && (
-        <p>No emails found.</p>
+      {isLoading && (
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3">Direction</th>
+                <th className="px-4 py-3">Agent</th>
+                <th className="px-4 py-3">Sender</th>
+                <th className="px-4 py-3">Recipient</th>
+                <th className="px-4 py-3">Subject</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonRow key={i} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {filtered.length > 0 && (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#fff",
-            borderRadius: 8,
-            overflow: "hidden",
-          }}
-        >
-          <thead>
-            <tr style={{ background: "#e9ecef", textAlign: "left" }}>
-              <th style={cellStyle}>Direction</th>
-              <th style={cellStyle}>Agent</th>
-              <th style={cellStyle}>Sender</th>
-              <th style={cellStyle}>Recipient</th>
-              <th style={cellStyle}>Subject</th>
-              <th style={cellStyle}>Status</th>
-              <th style={cellStyle}>Received</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((msg) => (
-              <EmailRow
-                key={msg.id}
-                msg={msg}
-                expanded={expandedId === msg.id}
-                onToggle={() =>
-                  setExpandedId(expandedId === msg.id ? null : msg.id)
-                }
-                onReview={handleReview}
-                reviewing={
-                  reviewMutation.isPending &&
-                  reviewMutation.variables?.messageId === msg.id
-                }
-                isPending={statusFilter === "pending"}
-              />
-            ))}
-          </tbody>
-        </table>
+      {!isLoading && isLoading === false && (
+        <>
+          {error && <p className="text-red-600">Error loading emails: {String(error)}</p>}
+
+          {!error && filtered.length === 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+              <p className="text-gray-500 text-lg">No emails found.</p>
+            </div>
+          )}
+
+          {filtered.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3">Direction</th>
+                    <th className="px-4 py-3">Agent</th>
+                    <th className="px-4 py-3">Sender</th>
+                    <th className="px-4 py-3">Recipient</th>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Received</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((msg) => (
+                    <EmailRow
+                      key={msg.id}
+                      msg={msg}
+                      expanded={expandedId === msg.id}
+                      onToggle={() =>
+                        setExpandedId(expandedId === msg.id ? null : msg.id)
+                      }
+                      onReview={handleReview}
+                      reviewing={
+                        reviewMutation.isPending &&
+                        reviewMutation.variables?.messageId === msg.id
+                      }
+                      isPending={statusFilter === "pending"}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -231,55 +231,33 @@ function EmailRow({
     <>
       <tr
         onClick={onToggle}
-        style={{
-          borderBottom: expanded ? "none" : "1px solid #dee2e6",
-          cursor: "pointer",
-          background: expanded ? "#f8f9fa" : undefined,
-        }}
+        className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
+          expanded ? "bg-gray-50" : ""
+        }`}
       >
-        <td style={cellStyle}>
+        <td className="px-4 py-3">
           <DirectionBadge direction={msg.direction} />
         </td>
-        <td style={cellStyle}>{msg.agentName}</td>
-        <td style={{ ...cellStyle, fontSize: "0.9rem" }}>{msg.sender}</td>
-        <td style={{ ...cellStyle, fontSize: "0.9rem" }}>
-          {msg.recipients.join(", ")}
-        </td>
-        <td style={cellStyle}>{msg.subject}</td>
-        <td style={cellStyle}>
+        <td className="px-4 py-3">{msg.agentName}</td>
+        <td className="px-4 py-3 text-sm">{msg.sender}</td>
+        <td className="px-4 py-3 text-sm">{msg.recipients.join(", ")}</td>
+        <td className="px-4 py-3">{msg.subject}</td>
+        <td className="px-4 py-3">
           <ReviewBadge status={msg.reviewStatus} />
         </td>
-        <td style={{ ...cellStyle, whiteSpace: "nowrap" }}>
+        <td className="px-4 py-3 whitespace-nowrap text-gray-500">
           {new Date(msg.createdAt).toLocaleString()}
         </td>
       </tr>
       {expanded && (
-        <tr style={{ borderBottom: "1px solid #dee2e6" }}>
-          <td colSpan={7} style={{ padding: "1rem 1.5rem", background: "#f8f9fa" }}>
-            <div
-              style={{
-                background: "#fff",
-                border: "1px solid #dee2e6",
-                borderRadius: 4,
-                padding: "1rem",
-                whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
-                fontSize: "0.85rem",
-                maxHeight: 400,
-                overflow: "auto",
-              }}
-            >
+        <tr className="border-b border-gray-100">
+          <td colSpan={7} className="p-4 bg-gray-50">
+            <div className="bg-white border border-gray-200 rounded p-4 whitespace-pre-wrap font-mono text-sm max-h-96 overflow-auto">
               {msg.bodyText ?? "(no text body)"}
             </div>
 
             {isPending && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.5rem",
-                  marginTop: "0.75rem",
-                }}
-              >
+              <div className="flex gap-2 mt-3">
                 <button
                   type="button"
                   disabled={reviewing}
@@ -287,16 +265,11 @@ function EmailRow({
                     e.stopPropagation();
                     onReview(msg.id, "approved");
                   }}
-                  style={{
-                    padding: "0.4rem 1rem",
-                    borderRadius: 4,
-                    border: "none",
-                    background: "#198754",
-                    color: "#fff",
-                    cursor: reviewing ? "not-allowed" : "pointer",
-                    fontWeight: 600,
-                    opacity: reviewing ? 0.6 : 1,
-                  }}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-colors cursor-pointer ${
+                    reviewing
+                      ? "bg-green-400 cursor-not-allowed opacity-60"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
                   {reviewing ? "..." : "Approve"}
                 </button>
@@ -307,16 +280,11 @@ function EmailRow({
                     e.stopPropagation();
                     onReview(msg.id, "rejected");
                   }}
-                  style={{
-                    padding: "0.4rem 1rem",
-                    borderRadius: 4,
-                    border: "none",
-                    background: "#dc3545",
-                    color: "#fff",
-                    cursor: reviewing ? "not-allowed" : "pointer",
-                    fontWeight: 600,
-                    opacity: reviewing ? 0.6 : 1,
-                  }}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-colors cursor-pointer ${
+                    reviewing
+                      ? "bg-red-400 cursor-not-allowed opacity-60"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
                 >
                   {reviewing ? "..." : "Reject"}
                 </button>

@@ -53,7 +53,7 @@ describe("AgentListPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders loading state", () => {
+  it("renders loading state with skeleton", () => {
     mockUseAgents.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -62,7 +62,8 @@ describe("AgentListPage", () => {
 
     renderPage();
 
-    expect(screen.getByText("Loading agents...")).toBeTruthy();
+    expect(screen.getByText("Agents")).toBeTruthy();
+    expect(screen.getByText("Name")).toBeTruthy();
   });
 
   it("renders error state", () => {
