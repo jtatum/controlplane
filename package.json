@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "scripts": {
+    "dev": "concurrently -n api,web,worker -c blue,green,magenta \"pnpm dev:api\" \"pnpm dev:web\" \"pnpm dev:worker\"",
     "dev:api": "pnpm --filter @controlplane/api dev",
     "dev:web": "pnpm --filter @controlplane/web dev",
     "dev:worker": "pnpm --filter @controlplane/worker dev",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "concurrently": "^9.2.1",
     "drizzle-kit": "^0.30.0",
     "prettier": "^3.4.0",
     "typescript": "^5.7.0",
