@@ -55,4 +55,26 @@ describe("app smoke test", () => {
 
     await app.close();
   });
+
+  it("throws when DEV_MODE=true and NODE_ENV=production", async () => {
+    process.env.DEV_MODE = "true";
+    process.env.NODE_ENV = "production";
+
+    await expect(createApp()).rejects.toThrow(
+      "FATAL: DEV_MODE=true is not allowed when NODE_ENV=production",
+    );
+
+    delete process.env.NODE_ENV;
+  });
+
+  it("allows DEV_MODE=true when NODE_ENV is not production", async () => {
+    process.env.DEV_MODE = "true";
+    process.env.NODE_ENV = "development";
+
+    const app = await createApp();
+    await app.ready();
+    await app.close();
+
+    delete process.env.NODE_ENV;
+  });
 });

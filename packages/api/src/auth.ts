@@ -44,6 +44,10 @@ async function ensureDevUser() {
 }
 
 async function oidcAuth(app: FastifyInstance) {
+  if (process.env.NODE_ENV === "production" && process.env.DEV_MODE === "true") {
+    throw new Error("FATAL: DEV_MODE=true is not allowed when NODE_ENV=production");
+  }
+
   const devMode = process.env.DEV_MODE === "true";
 
   app.decorateRequest("userId", "");
