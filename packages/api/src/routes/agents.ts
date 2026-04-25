@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import {

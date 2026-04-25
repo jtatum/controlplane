@@ -7,8 +7,7 @@ const pkg = JSON.parse(
   readFileSync(join(__dirname, "package.json"), "utf-8"),
 );
 
-// eslint is not yet installed — skip until dependency is added
-const KNOWN_MISSING: Set<string> = new Set(["lint"]);
+const KNOWN_MISSING: Set<string> = new Set();
 
 const binaryChecks: Record<string, string> = {
   dev: "pnpm exec concurrently --version",
