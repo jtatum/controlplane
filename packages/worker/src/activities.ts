@@ -274,3 +274,28 @@ export async function terminateInstance(input: {
     }),
   );
 }
+
+export async function cleanupAgentData(input: {
+  agentId: string;
+}): Promise<{ deletedChannels: number; deletedSkills: number; archivedMessages: number }> {
+  const channelResult = await pool.query(
+    `DELETE FROM channels WHERE agent_id = $1`,
+    [input.agentId],
+  );
+
+  const skillResult = await pool.query(
+    `DELETE FROM agent_skills WHERE agent_id = $1`,
+    [input.agentId],
+  );
+
+  const messageResult = await pool.query(
+    `UPDATE email_messages SET visible_to_agent = false, updated_at = now() WHERE agent_id = $1 AND visible_to_agent = true`,
+    [input.agentId],
+  );
+
+  return {
+    deletedChannels: channelResult.rowCount ?? 0,
+    deletedSkills: skillResult.rowCount ?? 0,
+    archivedMessages: messageResult.rowCount ?? 0,
+  };
+}

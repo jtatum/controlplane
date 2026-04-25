@@ -12,6 +12,10 @@ vi.mock("@aws-sdk/client-ec2", () => {
       _type: "DescribeInstances",
       input,
     })),
+    TerminateInstancesCommand: vi.fn((input: unknown) => ({
+      _type: "TerminateInstances",
+      input,
+    })),
   };
 });
 
@@ -25,6 +29,13 @@ vi.mock("@aws-sdk/client-ssm", () => {
     })),
   };
 });
+
+const mockPoolQuery = vi.fn();
+vi.mock("pg", () => ({
+  default: {
+    Pool: vi.fn(() => ({ query: mockPoolQuery })),
+  },
+}));
 
 const baseInput = {
   agentId: "00000000-0000-0000-0000-000000000001",
@@ -90,5 +101,49 @@ describe("deliverToken", () => {
     const { deliverToken } = await import("./activities.js");
     const result = await deliverToken({ agentId: baseInput.agentId });
     expect(result.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe("cleanupAgentData", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mockPoolQuery.mockReset();
+  });
+
+  it("deletes channels, skills, and archives messages", async () => {
+    mockPoolQuery
+      .mockResolvedValueOnce({ rowCount: 2 })
+      .mockResolvedValueOnce({ rowCount: 3 })
+      .mockResolvedValueOnce({ rowCount: 5 });
+
+    const { cleanupAgentData } = await import("./activities.js");
+    const result = await cleanupAgentData({ agentId: baseInput.agentId });
+
+    expect(result).toEqual({
+      deletedChannels: 2,
+      deletedSkills: 3,
+      archivedMessages: 5,
+    });
+
+    expect(mockPoolQuery).toHaveBeenCalledTimes(3);
+    expect(mockPoolQuery.mock.calls[0][0]).toContain("DELETE FROM channels");
+    expect(mockPoolQuery.mock.calls[1][0]).toContain("DELETE FROM agent_skills");
+    expect(mockPoolQuery.mock.calls[2][0]).toContain("UPDATE email_messages");
+  });
+
+  it("returns zeros when no related data exists", async () => {
+    mockPoolQuery
+      .mockResolvedValueOnce({ rowCount: 0 })
+      .mockResolvedValueOnce({ rowCount: 0 })
+      .mockResolvedValueOnce({ rowCount: 0 });
+
+    const { cleanupAgentData } = await import("./activities.js");
+    const result = await cleanupAgentData({ agentId: baseInput.agentId });
+
+    expect(result).toEqual({
+      deletedChannels: 0,
+      deletedSkills: 0,
+      archivedMessages: 0,
+    });
   });
 });

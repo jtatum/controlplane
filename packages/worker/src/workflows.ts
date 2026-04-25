@@ -31,6 +31,8 @@ export async function terminateAgent(
   try {
     await act.terminateInstance({ instanceId: input.ec2InstanceId });
 
+    await act.cleanupAgentData({ agentId: input.agentId });
+
     await act.updateAgentStatus({
       agentId: input.agentId,
       status: "terminated",
