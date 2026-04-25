@@ -131,16 +131,15 @@ describe("AgentDetailPage", () => {
     expect(screen.getByText("100 req/min")).toBeTruthy();
   });
 
-  it("renders loading state", () => {
+  it("renders loading state with skeleton", () => {
     mockUseAgent.mockReturnValue({
       data: undefined,
       isLoading: true,
       error: null,
     } as ReturnType<typeof useAgent>);
 
-    renderPage();
-
-    expect(screen.getByText("Loading agent...")).toBeTruthy();
+    const { container } = renderPage();
+    expect(container.querySelector(".animate-pulse")).toBeTruthy();
   });
 
   it("renders not found state", () => {

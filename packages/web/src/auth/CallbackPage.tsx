@@ -19,17 +19,17 @@ export function CallbackPage() {
 
   if (error) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <h2>Authentication Error</h2>
-        <p>{error}</p>
-        <a href="/">Return home</a>
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Error</h2>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <a href="/" className="text-blue-600 hover:underline">Return home</a>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <p>Completing sign in...</p>
+    <div className="p-8 text-center">
+      <p className="text-gray-600">Completing sign in...</p>
     </div>
   );
 }

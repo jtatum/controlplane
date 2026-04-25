@@ -5,19 +5,20 @@ import { StatusBadge } from "../components/StatusBadge.js";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: "0.75rem" }}>
-      <dt
-        style={{
-          fontSize: "0.8rem",
-          color: "#666",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginBottom: "0.15rem",
-        }}
-      >
+    <div className="mb-3">
+      <dt className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">
         {label}
       </dt>
-      <dd style={{ margin: 0, fontSize: "0.95rem" }}>{children}</dd>
+      <dd className="text-[0.95rem]">{children}</dd>
+    </div>
+  );
+}
+
+function SkeletonField() {
+  return (
+    <div className="mb-3">
+      <div className="h-3 w-20 bg-gray-200 rounded animate-pulse mb-1.5" />
+      <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
     </div>
   );
 }
@@ -30,45 +31,55 @@ export function AgentDetailPage() {
   const terminateMutation = useTerminateAgent();
   const [showConfirm, setShowConfirm] = useState(false);
 
-  if (isLoading) return <p>Loading agent...</p>;
-  if (error) return <p>Error loading agent: {String(error)}</p>;
-  if (!agent) return <p>Agent not found.</p>;
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-4">
+          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 rounded-lg shadow-sm">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i}>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4" />
+              {Array.from({ length: 4 }).map((_, j) => (
+                <SkeletonField key={j} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) return <p className="text-red-600">Error loading agent: {String(error)}</p>;
+  if (!agent) return <p className="text-gray-500">Agent not found.</p>;
 
   const canTerminate = !TERMINAL_STATUSES.has(agent.status) && !terminateMutation.isPending;
 
   return (
     <div>
-      <div style={{ marginBottom: "1rem" }}>
-        <Link to="/" style={{ color: "#0d6efd", textDecoration: "none" }}>
+      <div className="mb-4">
+        <Link to="/" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
           &larr; All agents
         </Link>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <h1 style={{ margin: 0 }}>{agent.name}</h1>
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">{agent.name}</h1>
         <StatusBadge status={agent.status} />
         <button
           type="button"
           disabled={!canTerminate}
           onClick={() => setShowConfirm(true)}
-          style={{
-            marginLeft: "auto",
-            padding: "0.5rem 1.2rem",
-            borderRadius: 4,
-            border: "none",
-            background: canTerminate ? "#dc3545" : "#6c757d",
-            color: "#fff",
-            cursor: canTerminate ? "pointer" : "not-allowed",
-            fontWeight: 600,
-            opacity: canTerminate ? 1 : 0.6,
-          }}
+          className={`ml-auto px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors cursor-pointer ${
+            canTerminate
+              ? "bg-red-600 hover:bg-red-700 focus:outline-2 focus:outline-offset-2 focus:outline-red-600"
+              : "bg-gray-400 opacity-60 cursor-not-allowed"
+          }`}
         >
           {terminateMutation.isPending ? "Terminating..." : "Terminate"}
         </button>
@@ -78,16 +89,7 @@ export function AgentDetailPage() {
         <div
           role="dialog"
           aria-label="Confirm termination"
-          style={{
-            background: "#fff3cd",
-            border: "1px solid #ffc107",
-            borderRadius: 8,
-            padding: "1rem 1.5rem",
-            marginBottom: "1rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}
+          className="bg-amber-50 border border-amber-400 rounded-lg px-6 py-4 mb-4 flex items-center gap-4"
         >
           <span>
             Terminate <strong>{agent.name}</strong>? This action cannot be undone.
@@ -98,28 +100,14 @@ export function AgentDetailPage() {
               terminateMutation.mutate(agent.id);
               setShowConfirm(false);
             }}
-            style={{
-              padding: "0.4rem 1rem",
-              borderRadius: 4,
-              border: "none",
-              background: "#dc3545",
-              color: "#fff",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="px-4 py-1.5 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors cursor-pointer"
           >
             Confirm
           </button>
           <button
             type="button"
             onClick={() => setShowConfirm(false)}
-            style={{
-              padding: "0.4rem 1rem",
-              borderRadius: 4,
-              border: "1px solid #ced4da",
-              background: "#fff",
-              cursor: "pointer",
-            }}
+            className="px-4 py-1.5 rounded-lg border border-gray-300 bg-white text-sm hover:bg-gray-50 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -127,34 +115,25 @@ export function AgentDetailPage() {
       )}
 
       {terminateMutation.isSuccess && (
-        <div style={{ background: "#d1e7dd", border: "1px solid #198754", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+        <div className="bg-green-50 border border-green-600 rounded-lg px-4 py-3 mb-4 text-green-800">
           Agent termination initiated. Status will update shortly.
         </div>
       )}
 
       {terminateMutation.isError && (
-        <div style={{ background: "#f8d7da", border: "1px solid #dc3545", borderRadius: 8, padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+        <div className="bg-red-50 border border-red-600 rounded-lg px-4 py-3 mb-4 text-red-800">
           Termination failed: {String(terminateMutation.error)}
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "2rem",
-          background: "#fff",
-          padding: "1.5rem",
-          borderRadius: 8,
-        }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 rounded-lg shadow-sm">
         <section>
-          <h3 style={{ marginTop: 0, borderBottom: "1px solid #dee2e6", paddingBottom: "0.5rem" }}>
+          <h3 className="mt-0 border-b border-gray-200 pb-2 text-lg font-semibold text-gray-800 mb-4">
             General
           </h3>
           <dl>
             <Field label="Agent Name">
-              <code>{agent.agentName}</code>
+              <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">{agent.agentName}</code>
             </Field>
             <Field label="Environment">{agent.environment}</Field>
             <Field label="Version">{agent.version ?? "—"}</Field>
@@ -171,7 +150,7 @@ export function AgentDetailPage() {
         </section>
 
         <section>
-          <h3 style={{ marginTop: 0, borderBottom: "1px solid #dee2e6", paddingBottom: "0.5rem" }}>
+          <h3 className="mt-0 border-b border-gray-200 pb-2 text-lg font-semibold text-gray-800 mb-4">
             Infrastructure
           </h3>
           <dl>
@@ -186,8 +165,8 @@ export function AgentDetailPage() {
           </dl>
         </section>
 
-        <section style={{ gridColumn: "1 / -1" }}>
-          <h3 style={{ marginTop: 0, borderBottom: "1px solid #dee2e6", paddingBottom: "0.5rem" }}>
+        <section className="md:col-span-2">
+          <h3 className="mt-0 border-b border-gray-200 pb-2 text-lg font-semibold text-gray-800 mb-4">
             Configuration
           </h3>
           <dl>

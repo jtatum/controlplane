@@ -70,7 +70,7 @@ describe("EmailReviewPage", () => {
     } as unknown as ReturnType<typeof useReviewEmail>);
   });
 
-  it("renders loading state", () => {
+  it("renders loading state with skeleton", () => {
     mockUseEmailsForReview.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -79,7 +79,8 @@ describe("EmailReviewPage", () => {
 
     renderPage();
 
-    expect(screen.getByText("Loading emails...")).toBeTruthy();
+    expect(screen.getByText("Email Review")).toBeTruthy();
+    expect(screen.getByText("Direction")).toBeTruthy();
   });
 
   it("renders error state", () => {
