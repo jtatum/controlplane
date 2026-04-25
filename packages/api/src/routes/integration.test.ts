@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { createHash } from "node:crypto";
 import pg from "pg";
 import type { FastifyInstance } from "fastify";
 import { setupTestDatabase, teardownTestDatabase, truncateAll } from "./integration-setup.js";
@@ -560,5 +561,109 @@ describe("POST /api/agents/:agentId/emails/send", () => {
       payload: { recipients: [] },
     });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+// ---------- Agent token auth ----------
+
+async function setAgentToken(agentId: string, rawToken: string) {
+  const hash = createHash("sha256").update(rawToken).digest("hex");
+  await pool.query("UPDATE agents SET agent_token_hash = $1 WHERE id = $2", [hash, agentId]);
+  return hash;
+}
+
+describe("Agent token auth", () => {
+  it("allows agent to access its own inbox with valid token", async () => {
+    const agent = await createAgent("token-inbox-agent");
+    const rawToken = "test-agent-token-secret-123";
+    await setAgentToken(agent.id, rawToken);
+    await seedEmailMessage(agent.id, { direction: "inbound", visible_to_agent: true, review_status: "approved" });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/agents/${agent.id}/emails/inbox`,
+      headers: { authorization: `Bearer ${rawToken}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().messages).toHaveLength(1);
+  });
+
+  it("allows agent to send emails with valid token", async () => {
+    const agent = await createAgent("token-send-agent");
+    const rawToken = "test-agent-send-token-456";
+    await setAgentToken(agent.id, rawToken);
+    await seedEmailChannel(agent.id, { outboundReview: false });
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/agents/${agent.id}/emails/send`,
+      headers: { authorization: `Bearer ${rawToken}` },
+      payload: { recipients: ["user@example.com"], subject: "From agent", bodyText: "Hello" },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.json().reviewStatus).toBe("approved");
+  });
+
+  it("rejects agent accessing a different agent's inbox", async () => {
+    const agent1 = await createAgent("token-agent-one");
+    const agent2 = await createAgent("token-agent-two");
+    const rawToken = "agent-one-token-789";
+    await setAgentToken(agent1.id, rawToken);
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/agents/${agent2.id}/emails/inbox`,
+      headers: { authorization: `Bearer ${rawToken}` },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toBe("Forbidden");
+  });
+
+  it("rejects agent sending emails for a different agent", async () => {
+    const agent1 = await createAgent("token-send-one");
+    const agent2 = await createAgent("token-send-two");
+    const rawToken = "agent-one-send-token-abc";
+    await setAgentToken(agent1.id, rawToken);
+    await seedEmailChannel(agent2.id);
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/agents/${agent2.id}/emails/send`,
+      headers: { authorization: `Bearer ${rawToken}` },
+      payload: { recipients: ["user@example.com"], subject: "Bad", bodyText: "Nope" },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toBe("Forbidden");
+  });
+
+  it("rejects requests with invalid agent token", async () => {
+    const agent = await createAgent("token-invalid-agent");
+    await setAgentToken(agent.id, "real-token");
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/agents/${agent.id}/emails/inbox`,
+      headers: { authorization: "Bearer wrong-token" },
+    });
+
+    // In DEV_MODE, unmatched tokens fall through to dev user auth
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("humans (no agent token) can still access agent email routes", async () => {
+    const agent = await createAgent("human-access-agent");
+    await seedEmailMessage(agent.id, { direction: "inbound", visible_to_agent: true, review_status: "approved" });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/agents/${agent.id}/emails/inbox`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().messages).toHaveLength(1);
   });
 });

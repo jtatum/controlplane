@@ -19,6 +19,15 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 }
 
 export async function agentEmailRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", async (request, reply) => {
+    const { agentId } = (request.params ?? {}) as { agentId?: string };
+    if (!agentId) return;
+
+    if (request.authenticatedAgentId && request.authenticatedAgentId !== agentId) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+  });
+
   app.get<{
     Params: { agentId: string };
     Querystring: { limit?: string; offset?: string };
