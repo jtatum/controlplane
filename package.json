@@ -9,7 +9,6 @@
     "build": "pnpm -r build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint packages/",
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
