@@ -1,14 +1,19 @@
 import { NativeConnection, Worker } from "@temporalio/worker";
 import * as activities from "./activities.js";
-
-const TASK_QUEUE = process.env.TEMPORAL_TASK_QUEUE ?? "controlplane";
-const TEMPORAL_ADDRESS =
-  process.env.TEMPORAL_ADDRESS ?? "localhost:7233";
+import {
+  TASK_QUEUE,
+  TEMPORAL_ADDRESS,
+  MAX_CONCURRENT_WORKFLOW_TASKS,
+  MAX_CONCURRENT_ACTIVITY_TASKS,
+  buildWorkerIdentity,
+} from "./config.js";
 
 async function run() {
   const connection = await NativeConnection.connect({
     address: TEMPORAL_ADDRESS,
   });
+
+  const identity = buildWorkerIdentity();
 
   const worker = await Worker.create({
     connection,
@@ -21,9 +26,14 @@ async function run() {
       import.meta.url,
     ).pathname,
     activities,
+    identity,
+    maxConcurrentWorkflowTaskExecutions: MAX_CONCURRENT_WORKFLOW_TASKS,
+    maxConcurrentActivityTaskExecutions: MAX_CONCURRENT_ACTIVITY_TASKS,
   });
 
-  console.log(`Temporal worker started on task queue: ${TASK_QUEUE}`);
+  console.log(
+    `Temporal worker started: identity=${identity} queue=${TASK_QUEUE} workflows=${MAX_CONCURRENT_WORKFLOW_TASKS} activities=${MAX_CONCURRENT_ACTIVITY_TASKS}`,
+  );
   await worker.run();
 }
 
