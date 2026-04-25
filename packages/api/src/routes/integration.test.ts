@@ -36,7 +36,15 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await truncateAll(pool);
+  await pool.query("UPDATE users SET role = 'admin' WHERE external_id = 'dev-user-001'");
 });
+
+async function createFreshApp() {
+  const { createApp } = await import("../app.js");
+  const freshApp = await createApp();
+  await freshApp.ready();
+  return freshApp;
+}
 
 async function createAgent(agentName: string) {
   const res = await app.inject({
@@ -467,6 +475,155 @@ describe("POST /api/emails/:messageId/review", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("Validation failed");
+  });
+});
+
+// ---------- Ownership enforcement ----------
+
+describe("agent ownership checks", () => {
+  let otherUserId: string;
+
+  async function createOtherUser() {
+    const res = await pool.query(
+      `INSERT INTO users (external_id, email, display_name, role)
+       VALUES ('other-user-001', 'other@openclaw.local', 'Other User', 'user')
+       ON CONFLICT (external_id) DO UPDATE SET role = 'user'
+       RETURNING id`,
+    );
+    return res.rows[0].id as string;
+  }
+
+  async function createAgentForUser(ownerId: string, agentName: string) {
+    const res = await pool.query(
+      `INSERT INTO agents (owner_id, name, agent_name, environment, status, bedrock_region, instance_type, config)
+       VALUES ($1, $2, $3, 'dev', 'running', 'us-east-1', 't4g.medium', '{}')
+       RETURNING id`,
+      [ownerId, `Agent ${agentName}`, agentName],
+    );
+    return res.rows[0].id as string;
+  }
+
+  beforeEach(async () => {
+    otherUserId = await createOtherUser();
+  });
+
+  describe("admin bypass", () => {
+    it("admin can PATCH an agent owned by another user", async () => {
+      const agentId = await createAgentForUser(otherUserId, "other-patch");
+      const res = await app.inject({
+        method: "PATCH",
+        url: `/api/agents/${agentId}`,
+        payload: { name: "Admin Updated" },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().name).toBe("Admin Updated");
+    });
+
+    it("admin can terminate an agent owned by another user", async () => {
+      const agentId = await createAgentForUser(otherUserId, "other-terminate");
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/agents/${agentId}/terminate`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().status).toBe("stopping");
+    });
+
+    it("admin can access email inbox of agent owned by another user", async () => {
+      const agentId = await createAgentForUser(otherUserId, "other-inbox");
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/agents/${agentId}/emails/inbox`,
+      });
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("admin can send email for agent owned by another user", async () => {
+      const agentId = await createAgentForUser(otherUserId, "other-send");
+      await seedEmailChannel(agentId, { outboundReview: true });
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/agents/${agentId}/emails/send`,
+        payload: { recipients: ["user@example.com"], subject: "Admin Send", bodyText: "Hello" },
+      });
+      expect(res.statusCode).toBe(201);
+    });
+  });
+
+  describe("non-admin ownership denial", () => {
+    it("PATCH returns 403 for non-owner", async () => {
+      const agentId = await createAgentForUser(otherUserId, "deny-patch");
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "PATCH",
+        url: `/api/agents/${agentId}`,
+        payload: { name: "Should Fail" },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toBe("Forbidden");
+      await freshApp.close();
+    });
+
+    it("terminate returns 403 for non-owner", async () => {
+      const agentId = await createAgentForUser(otherUserId, "deny-terminate");
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "POST",
+        url: `/api/agents/${agentId}/terminate`,
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toBe("Forbidden");
+      await freshApp.close();
+    });
+
+    it("email inbox returns 403 for non-owner", async () => {
+      const agentId = await createAgentForUser(otherUserId, "deny-inbox");
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "GET",
+        url: `/api/agents/${agentId}/emails/inbox`,
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toBe("Forbidden");
+      await freshApp.close();
+    });
+
+    it("email send returns 403 for non-owner", async () => {
+      const agentId = await createAgentForUser(otherUserId, "deny-send");
+      await seedEmailChannel(agentId, { outboundReview: true });
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "POST",
+        url: `/api/agents/${agentId}/emails/send`,
+        payload: { recipients: ["user@example.com"], subject: "Test", bodyText: "Hello" },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toBe("Forbidden");
+      await freshApp.close();
+    });
+
+    it("owner can still PATCH their own agent as non-admin", async () => {
+      const agent = await createAgent("own-patch");
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "PATCH",
+        url: `/api/agents/${agent.id}`,
+        payload: { name: "Owner Updated" },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().name).toBe("Owner Updated");
+      await freshApp.close();
+    });
   });
 });
 

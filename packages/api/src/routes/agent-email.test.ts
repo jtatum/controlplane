@@ -33,6 +33,10 @@ const mockedDb = vi.mocked(db);
 
 function buildApp() {
   const app = Fastify();
+  app.decorateRequest("dbUser", null);
+  app.addHook("preHandler", async (request) => {
+    request.dbUser = { id: "owner-1", role: "admin" } as any;
+  });
   app.register(agentEmailRoutes);
   return app;
 }
@@ -68,7 +72,7 @@ describe("agent email routes", () => {
       const agentSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
+        limit: vi.fn().mockResolvedValue([{ id: "agent-1", ownerId: "owner-1" }]),
       };
 
       const now = new Date();
@@ -140,7 +144,7 @@ describe("agent email routes", () => {
       const agentSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
+        limit: vi.fn().mockResolvedValue([{ id: "agent-1", ownerId: "owner-1" }]),
       };
 
       const messagesSelect = {
@@ -204,7 +208,7 @@ describe("agent email routes", () => {
       const agentSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
+        limit: vi.fn().mockResolvedValue([{ id: "agent-1", ownerId: "owner-1" }]),
       };
 
       const channelSelect = {
@@ -247,7 +251,7 @@ describe("agent email routes", () => {
       const agentSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
+        limit: vi.fn().mockResolvedValue([{ id: "agent-1", ownerId: "owner-1" }]),
       };
 
       const channelSelect = {

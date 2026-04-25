@@ -221,11 +221,15 @@ export default async function agentRoutes(app: FastifyInstance) {
     const [existing] = await db
       .select()
       .from(agents)
-      .where(and(eq(agents.id, params.data.id), eq(agents.ownerId, user.id)))
+      .where(eq(agents.id, params.data.id))
       .limit(1);
 
     if (!existing) {
       return reply.code(404).send({ error: "Agent not found" });
+    }
+
+    if (existing.ownerId !== user.id && user.role !== "admin") {
+      return reply.code(403).send({ error: "Forbidden" });
     }
 
     if (existing.status === "terminated") {
@@ -276,11 +280,15 @@ export default async function agentRoutes(app: FastifyInstance) {
     const [existing] = await db
       .select()
       .from(agents)
-      .where(and(eq(agents.id, params.data.id), eq(agents.ownerId, user.id)))
+      .where(eq(agents.id, params.data.id))
       .limit(1);
 
     if (!existing) {
       return reply.code(404).send({ error: "Agent not found" });
+    }
+
+    if (existing.ownerId !== user.id && user.role !== "admin") {
+      return reply.code(403).send({ error: "Forbidden" });
     }
 
     if (existing.status === "terminated") {

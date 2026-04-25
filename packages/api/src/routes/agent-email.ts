@@ -37,13 +37,24 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     const offset = parsePositiveInt(request.query.offset, 0);
 
     const agent = await db
-      .select({ id: agents.id })
+      .select({ id: agents.id, ownerId: agents.ownerId })
       .from(agents)
       .where(eq(agents.id, agentId))
       .limit(1);
 
     if (agent.length === 0) {
       return reply.status(404).send({ error: "Agent not found" });
+    }
+
+    if (request.authenticatedAgentId) {
+      if (request.authenticatedAgentId !== agentId) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+    } else {
+      const user = request.dbUser!;
+      if (agent[0].ownerId !== user.id && user.role !== "admin") {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
     }
 
     const messages = await db
@@ -126,13 +137,24 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     }
 
     const agent = await db
-      .select({ id: agents.id })
+      .select({ id: agents.id, ownerId: agents.ownerId })
       .from(agents)
       .where(eq(agents.id, agentId))
       .limit(1);
 
     if (agent.length === 0) {
       return reply.status(404).send({ error: "Agent not found" });
+    }
+
+    if (request.authenticatedAgentId) {
+      if (request.authenticatedAgentId !== agentId) {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
+    } else {
+      const user = request.dbUser!;
+      if (agent[0].ownerId !== user.id && user.role !== "admin") {
+        return reply.status(403).send({ error: "Forbidden" });
+      }
     }
 
     const emailChannel = await db
