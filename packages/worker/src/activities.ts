@@ -8,10 +8,7 @@ import {
 import { SSMClient, PutParameterCommand } from "@aws-sdk/client-ssm";
 import { randomBytes, createHash } from "node:crypto";
 import pg from "pg";
-import {
-  assertTransition,
-  InvalidStatusTransitionError,
-} from "@controlplane/shared";
+import { assertTransition } from "@controlplane/shared";
 
 export interface ProvisionAgentInput {
   agentId: string;
@@ -224,7 +221,6 @@ export async function updateAgentStatus(input: {
   if (input.agentTokenHash !== undefined) {
     setClauses.push(`agent_token_hash = $${paramIdx}`);
     values.push(input.agentTokenHash);
-    paramIdx++;
   }
   if (input.status === "running") {
     setClauses.push(`provisioned_at = now()`);
@@ -263,7 +259,6 @@ export async function updateProvisioningJob(input: {
   if (input.errorMessage !== undefined) {
     setClauses.push(`error_message = $${paramIdx}`);
     values.push(input.errorMessage);
-    paramIdx++;
   }
 
   await pool.query(

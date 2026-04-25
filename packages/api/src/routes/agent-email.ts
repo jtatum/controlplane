@@ -3,7 +3,6 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import {
   emailMessages,
   emailAttachments,
-  agents,
   channelEmail,
   channels,
   SendEmailSchema,

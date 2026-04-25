@@ -1,0 +1,29 @@
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+
+export default tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  {
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "packages/*/dist/",
+      "packages/*/node_modules/",
+      "migrations/",
+      "*.config.js",
+      "*.config.mjs",
+      "*.config.ts",
+    ],
+  },
+);

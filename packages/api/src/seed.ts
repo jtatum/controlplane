@@ -166,7 +166,7 @@ async function seed() {
     insertedAgents.push(id);
   }
 
-  const [supportBotId, wikiAssistId] = insertedAgents;
+  const [supportBotId] = insertedAgents;
   console.log(`  Agents: ${insertedAgents.join(", ")}`);
 
   // Channels — email for support bot
