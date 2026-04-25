@@ -43,7 +43,7 @@ const baseAgent: AgentDetail = {
   ec2InstanceId: "i-abc123",
   privateIp: "10.0.0.1",
   availabilityZone: "us-east-1a",
-  instanceType: "c7g.large",
+  instanceType: "t4g.medium",
   provisionedAt: "2026-01-01T01:00:00Z",
   updatedAt: "2026-01-01T02:00:00Z",
   config: {

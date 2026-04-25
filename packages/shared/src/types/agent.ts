@@ -26,7 +26,6 @@ export const CreateAgentSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/),
   environment: z.enum(["dev", "prod"]),
-  instanceType: z.string().default("c7g.large"),
   config: AgentConfigSchema.optional(),
 });
 export type CreateAgentInput = z.infer<typeof CreateAgentSchema>;

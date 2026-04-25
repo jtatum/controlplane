@@ -97,7 +97,7 @@ describe("POST /api/agents", () => {
     expect(body.environment).toBe("dev");
     expect(body.status).toBe("provisioning");
     expect(body.bedrockRegion).toBe("us-east-1");
-    expect(body.instanceType).toBe("c7g.large");
+    expect(body.instanceType).toBe("t4g.medium");
     expect(body.config).toBeDefined();
     expect(body.ownerId).toEqual(expect.any(String));
     expect(body.createdAt).toEqual(expect.any(String));
@@ -194,7 +194,7 @@ describe("GET /api/agents/:id", () => {
     expect(body.name).toBe("Agent detail-agent");
     expect(body.ownerId).toEqual(expect.any(String));
     expect(body.config).toBeDefined();
-    expect(body.instanceType).toBe("c7g.large");
+    expect(body.instanceType).toBe("t4g.medium");
   });
 
   it("returns 404 for nonexistent agent", async () => {
