@@ -8,6 +8,10 @@ import {
 import { SSMClient, PutParameterCommand } from "@aws-sdk/client-ssm";
 import { randomBytes, createHash } from "node:crypto";
 import pg from "pg";
+import {
+  assertTransition,
+  InvalidStatusTransitionError,
+} from "@controlplane/shared";
 
 export interface ProvisionAgentInput {
   agentId: string;
@@ -178,6 +182,19 @@ export async function updateAgentStatus(input: {
   availabilityZone?: string;
   agentTokenHash?: string;
 }): Promise<void> {
+  const currentResult = await pool.query(
+    `SELECT status FROM agents WHERE id = $1`,
+    [input.agentId],
+  );
+  const currentStatus = currentResult.rows[0]?.status;
+  if (!currentStatus) {
+    throw new Error(`Agent ${input.agentId} not found`);
+  }
+
+  if (currentStatus !== input.status) {
+    assertTransition(currentStatus, input.status as never);
+  }
+
   const setClauses: string[] = [`status = $2`, `updated_at = now()`];
   const values: unknown[] = [input.agentId, input.status];
   let paramIdx = 3;

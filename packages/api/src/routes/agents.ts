@@ -7,6 +7,8 @@ import {
   provisioningJobs,
   CreateAgentSchema,
   AgentConfigSchema,
+  canTransition,
+  allowedTransitions,
 } from "@controlplane/shared";
 import { db } from "../db.js";
 import { getTemporalClient, TASK_QUEUE } from "../temporal.js";
@@ -283,12 +285,11 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(404).send({ error: "Agent not found" });
     }
 
-    if (existing.status === "terminated") {
-      return reply.code(409).send({ error: "Agent is already terminated" });
-    }
-
-    if (existing.status === "stopping") {
-      return reply.code(409).send({ error: "Agent is already stopping" });
+    if (!canTransition(existing.status, "stopping")) {
+      return reply.code(409).send({
+        error: `Cannot terminate agent in '${existing.status}' status`,
+        allowedTransitions: allowedTransitions(existing.status),
+      });
     }
 
     const [updated] = await db

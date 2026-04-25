@@ -5,3 +5,4 @@ export * from "./types/email.js";
 export * from "./types/channel.js";
 export * from "./types/user.js";
 export * from "./types/provisioning.js";
+export * from "./types/status-machine.js";
