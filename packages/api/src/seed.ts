@@ -93,7 +93,11 @@ async function seed() {
       status: "running" as const,
       versionId,
       bedrockRegion: "us-east-1",
-      config: { systemPrompt: "You are a helpful customer support agent." },
+      config: {
+        model: { id: "anthropic.claude-sonnet-4-20250514-v1:0", temperature: 0.7, maxTokens: 4096 },
+        gateway: { rateLimit: 60 },
+        features: { systemPrompt: true },
+      },
     },
     {
       ownerId,
@@ -103,7 +107,11 @@ async function seed() {
       status: "stopped" as const,
       versionId,
       bedrockRegion: "us-east-1",
-      config: { systemPrompt: "You help employees search the internal wiki." },
+      config: {
+        model: { id: "anthropic.claude-sonnet-4-20250514-v1:0", temperature: 0.5, maxTokens: 8192 },
+        gateway: { rateLimit: 30 },
+        features: {},
+      },
     },
     {
       ownerId: aliceId,
@@ -113,7 +121,11 @@ async function seed() {
       status: "provisioning" as const,
       versionId,
       bedrockRegion: "us-west-2",
-      config: {},
+      config: {
+        model: { id: "anthropic.claude-haiku-4-5-20251001-v1:0", temperature: 0.3, maxTokens: 2048 },
+        gateway: { rateLimit: 120 },
+        features: {},
+      },
     },
   ];
 

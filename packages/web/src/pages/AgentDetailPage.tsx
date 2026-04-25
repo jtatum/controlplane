@@ -102,15 +102,17 @@ export function AgentDetailPage() {
             Configuration
           </h3>
           <dl>
-            <Field label="Model">{agent.config.model.id}</Field>
+            <Field label="Model">{agent.config?.model?.id ?? "—"}</Field>
             <Field label="Temperature">
-              {agent.config.model.temperature}
+              {agent.config?.model?.temperature ?? "—"}
             </Field>
             <Field label="Max Tokens">
-              {agent.config.model.maxTokens}
+              {agent.config?.model?.maxTokens ?? "—"}
             </Field>
             <Field label="Rate Limit">
-              {agent.config.gateway.rateLimit} req/min
+              {agent.config?.gateway?.rateLimit != null
+                ? `${agent.config.gateway.rateLimit} req/min`
+                : "—"}
             </Field>
           </dl>
         </section>
