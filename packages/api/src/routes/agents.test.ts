@@ -54,12 +54,19 @@ describe("agent routes ownership", () => {
 
   describe("POST /agents", () => {
     it("returns 409 when agentName is already taken", async () => {
+      const activeAgentSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
       const versionSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([{ id: "v-1", amiId: "ami-123", version: "1.0.0" }]),
       };
-      mockedDb.select.mockReturnValueOnce(versionSelect as any);
+      mockedDb.select
+        .mockReturnValueOnce(activeAgentSelect as any)
+        .mockReturnValueOnce(versionSelect as any);
 
       const uniqueError = new Error("unique violation") as any;
       uniqueError.code = "23505";
