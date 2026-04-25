@@ -11,6 +11,7 @@ const pkg = JSON.parse(
 const KNOWN_MISSING: Set<string> = new Set(["lint"]);
 
 const binaryChecks: Record<string, string> = {
+  dev: "pnpm exec concurrently --version",
   "dev:api": "pnpm --filter @controlplane/api exec tsx --version",
   "dev:web": "pnpm --filter @controlplane/web exec vite --version",
   "dev:worker": "pnpm --filter @controlplane/worker exec tsx --version",
@@ -25,6 +26,25 @@ const binaryChecks: Record<string, string> = {
   "db:studio": "pnpm exec drizzle-kit --version",
   typecheck: "pnpm exec tsc --version",
 };
+
+describe("env file loading", () => {
+  const subPkgs = ["api", "worker"] as const;
+
+  it.each(subPkgs)("%s dev script loads .env.local", (name) => {
+    const subPkg = JSON.parse(
+      readFileSync(join(__dirname, `packages/${name}/package.json`), "utf-8"),
+    );
+    expect(subPkg.scripts.dev).toContain("--env-file-if-exists");
+    expect(subPkg.scripts.dev).toContain(".env.local");
+  });
+
+  it(".env.example exists and contains DATABASE_URL", () => {
+    const example = readFileSync(join(__dirname, ".env.example"), "utf-8");
+    expect(example).toContain("DATABASE_URL=");
+    expect(example).toContain("TEMPORAL_ADDRESS=");
+    expect(example).toContain("DEV_MODE=");
+  });
+});
 
 describe("root package.json scripts", () => {
   const scriptNames = Object.keys(pkg.scripts);
