@@ -38,10 +38,6 @@ const ListQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-function pickRegion(environment: string): string {
-  return environment === "prod" ? "us-west-2" : "us-east-1";
-}
-
 export default async function agentRoutes(app: FastifyInstance) {
   app.post("/agents", async (request, reply) => {
     const body = CreateAgentSchema.safeParse(request.body);
@@ -49,7 +45,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Validation failed", details: body.error.issues });
     }
 
-    const { name, agentName, environment, instanceType, config } = body.data;
+    const { name, agentName, environment, config } = body.data;
     const user = request.dbUser!;
 
     const defaultVersion = await db
@@ -67,8 +63,8 @@ export default async function agentRoutes(app: FastifyInstance) {
         name,
         agentName,
         environment,
-        instanceType,
-        bedrockRegion: pickRegion(environment),
+        instanceType: "t4g.medium",
+        bedrockRegion: "us-east-1",
         versionId: version?.id ?? null,
         status: "provisioning",
         config: config ?? {},

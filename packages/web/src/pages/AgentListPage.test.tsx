@@ -44,7 +44,7 @@ const agent2: AgentSummary = {
   environment: "prod",
   status: "stopped",
   version: null,
-  bedrockRegion: "us-west-2",
+  bedrockRegion: "us-east-1",
   createdAt: "2026-04-01T08:00:00Z",
 };
 

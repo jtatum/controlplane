@@ -126,7 +126,7 @@ export const agents = pgTable(
     ec2InstanceId: text("ec2_instance_id"),
     privateIp: inet("private_ip"),
     availabilityZone: text("availability_zone"),
-    instanceType: text("instance_type").notNull().default("c7g.large"),
+    instanceType: text("instance_type").notNull().default("t4g.medium"),
     bedrockRegion: text("bedrock_region").notNull(),
     agentTokenHash: text("agent_token_hash"),
     config: jsonb("config").notNull().default({}),

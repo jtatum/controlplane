@@ -29,7 +29,7 @@ vi.mock("@aws-sdk/client-ssm", () => {
 const baseInput = {
   agentId: "00000000-0000-0000-0000-000000000001",
   agentName: "test-agent",
-  instanceType: "c7g.large",
+  instanceType: "t4g.medium",
   environment: "dev",
   bedrockRegion: "us-east-1",
   amiId: "ami-12345678",
