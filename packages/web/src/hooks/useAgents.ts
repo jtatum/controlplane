@@ -2,10 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import type { AgentSummary, AgentDetail } from "@controlplane/shared";
 import { fetchJson } from "./api.js";
 
+interface AgentListResponse {
+  data: AgentSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export function useAgents() {
   return useQuery<AgentSummary[]>({
     queryKey: ["agents"],
-    queryFn: () => fetchJson<AgentSummary[]>("/agents"),
+    queryFn: async () => {
+      const res = await fetchJson<AgentListResponse>("/agents");
+      return res.data;
+    },
   });
 }
 
