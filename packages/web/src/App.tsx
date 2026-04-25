@@ -8,6 +8,7 @@ import { AgentListPage } from "./pages/AgentListPage.js";
 import { AgentDetailPage } from "./pages/AgentDetailPage.js";
 import { EmailReviewPage } from "./pages/EmailReviewPage.js";
 import { CreateAgentPage } from "./pages/CreateAgentPage.js";
+import { AuditLogPage } from "./pages/AuditLogPage.js";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ export function App() {
               <Route path="agents/new" element={<CreateAgentPage />} />
               <Route path="agents/:id" element={<AgentDetailPage />} />
               <Route path="emails/review" element={<EmailReviewPage />} />
+              <Route path="audit-log" element={<AuditLogPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

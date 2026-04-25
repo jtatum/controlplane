@@ -5,6 +5,7 @@ const navItems = [
   { to: "/", label: "Agents" },
   { to: "/agents/new", label: "Create Agent" },
   { to: "/emails/review", label: "Email Review" },
+  { to: "/audit-log", label: "Audit Log" },
 ] as const;
 
 export function Layout() {

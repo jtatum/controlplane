@@ -10,6 +10,7 @@ import {
 } from "@controlplane/shared";
 import { db } from "../db.js";
 import { getTemporalClient, TASK_QUEUE } from "../temporal.js";
+import { writeAuditLog } from "../audit.js";
 
 const UpdateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -103,6 +104,16 @@ export default async function agentRoutes(app: FastifyInstance) {
         instanceType: agent.instanceType,
         environment: agent.environment,
       },
+    });
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "agent.create",
+      resourceType: "agent",
+      resourceId: agent.id,
+      agentId: agent.id,
+      detail: { name, agentName, environment },
+      ipAddress: request.ip,
     });
 
     return reply.code(201).send(formatDetail(agent, version?.version ?? null));
@@ -241,6 +252,16 @@ export default async function agentRoutes(app: FastifyInstance) {
           .limit(1)
       : [];
 
+    await writeAuditLog({
+      actorId: user.id,
+      action: "agent.update",
+      resourceType: "agent",
+      resourceId: params.data.id,
+      agentId: params.data.id,
+      detail: { fields: Object.keys(body.data) },
+      ipAddress: request.ip,
+    });
+
     return reply.send(formatDetail(updated, version[0]?.version ?? null));
   });
 
@@ -311,6 +332,16 @@ export default async function agentRoutes(app: FastifyInstance) {
           .where(eq(openclawVersions.id, existing.versionId))
           .limit(1)
       : [];
+
+    await writeAuditLog({
+      actorId: user.id,
+      action: "agent.terminate",
+      resourceType: "agent",
+      resourceId: existing.id,
+      agentId: existing.id,
+      detail: { ec2InstanceId: existing.ec2InstanceId },
+      ipAddress: request.ip,
+    });
 
     return reply.send(formatDetail(updated, versionRow[0]?.version ?? null));
   });

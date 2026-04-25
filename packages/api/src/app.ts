@@ -5,6 +5,7 @@ import oidcAuth from "./auth.js";
 import agentRoutes from "./routes/agents.js";
 import { agentEmailRoutes } from "./routes/agent-email.js";
 import { humanEmailRoutes } from "./routes/human-email.js";
+import { auditLogRoutes } from "./routes/audit-log.js";
 
 export async function createApp() {
   const app = Fastify({ logger: true });
@@ -18,6 +19,7 @@ export async function createApp() {
   await app.register(agentRoutes, { prefix: "/api" });
   await app.register(agentEmailRoutes, { prefix: "/api" });
   await app.register(humanEmailRoutes, { prefix: "/api" });
+  await app.register(auditLogRoutes, { prefix: "/api" });
 
   return app;
 }
