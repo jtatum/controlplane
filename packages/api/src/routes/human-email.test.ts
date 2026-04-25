@@ -11,6 +11,10 @@ vi.mock("../db.js", () => {
   };
 });
 
+vi.mock("../audit.js", () => ({
+  writeAuditLog: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { db } from "../db.js";
 
 const mockedDb = vi.mocked(db);
@@ -268,7 +272,7 @@ describe("human email routes", () => {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         returning: vi.fn().mockResolvedValue([
-          { id: "msg-1", reviewStatus: "approved", reviewedAt: now },
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
         ]),
       };
       mockedDb.update.mockReturnValueOnce(updateChain as any);
@@ -289,7 +293,7 @@ describe("human email routes", () => {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         returning: vi.fn().mockResolvedValue([
-          { id: "msg-1", reviewStatus: "rejected", reviewedAt: now },
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "rejected", reviewedAt: now },
         ]),
       };
       mockedDb.update.mockReturnValueOnce(updateChain as any);

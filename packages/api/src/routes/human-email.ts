@@ -8,6 +8,7 @@ import {
 } from "@controlplane/shared";
 import type { EmailMessage } from "@controlplane/shared";
 import { db } from "../db.js";
+import { writeAuditLog } from "../audit.js";
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (value === undefined) return fallback;
@@ -183,6 +184,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       )
       .returning({
         id: emailMessages.id,
+        agentId: emailMessages.agentId,
         reviewStatus: emailMessages.reviewStatus,
         reviewedAt: emailMessages.reviewedAt,
       });
@@ -202,6 +204,16 @@ export async function humanEmailRoutes(app: FastifyInstance) {
         error: `Message already reviewed as '${existing.reviewStatus}'`,
       });
     }
+
+    await writeAuditLog({
+      actorId: request.dbUser?.id ?? "",
+      action: `email.review.${parsed.data.status}`,
+      resourceType: "email",
+      resourceId: messageId,
+      agentId: updated.agentId,
+      detail: { status: parsed.data.status, note: parsed.data.note ?? null },
+      ipAddress: request.ip,
+    });
 
     return {
       id: updated.id,
