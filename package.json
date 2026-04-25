@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx packages/api/src/seed.ts",
+    "db:seed": "npx tsx packages/api/src/seed.ts",
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc -b"
   },
