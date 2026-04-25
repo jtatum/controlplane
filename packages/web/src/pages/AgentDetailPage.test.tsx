@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AgentDetailPage } from "./AgentDetailPage.js";
@@ -8,10 +8,12 @@ import type { AgentDetail } from "@controlplane/shared";
 
 vi.mock("../hooks/useAgents.js", () => ({
   useAgent: vi.fn(),
+  useTerminateAgent: vi.fn(),
 }));
 
-import { useAgent } from "../hooks/useAgents.js";
+import { useAgent, useTerminateAgent } from "../hooks/useAgents.js";
 const mockUseAgent = vi.mocked(useAgent);
+const mockUseTerminateAgent = vi.mocked(useTerminateAgent);
 
 function renderPage(id = "agent-1") {
   const qc = new QueryClient({
@@ -52,8 +54,18 @@ const baseAgent: AgentDetail = {
 };
 
 describe("AgentDetailPage", () => {
+  let mutateFn: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mutateFn = vi.fn();
+    mockUseTerminateAgent.mockReturnValue({
+      mutate: mutateFn,
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof useTerminateAgent>);
   });
 
   it("renders full config correctly", () => {
@@ -141,5 +153,171 @@ describe("AgentDetailPage", () => {
     renderPage();
 
     expect(screen.getByText("Agent not found.")).toBeTruthy();
+  });
+
+  describe("terminate button", () => {
+    it("shows enabled terminate button for running agent", () => {
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      const btn = screen.getByText("Terminate");
+      expect(btn).toBeTruthy();
+      expect((btn as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it("shows disabled terminate button for terminated agent", () => {
+      mockUseAgent.mockReturnValue({
+        data: { ...baseAgent, status: "terminated" },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      const btn = screen.getByText("Terminate");
+      expect((btn as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it("shows disabled terminate button for stopping agent", () => {
+      mockUseAgent.mockReturnValue({
+        data: { ...baseAgent, status: "stopping" },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      const btn = screen.getByText("Terminate");
+      expect((btn as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it("shows disabled terminate button for stopped agent", () => {
+      mockUseAgent.mockReturnValue({
+        data: { ...baseAgent, status: "stopped" },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      const btn = screen.getByText("Terminate");
+      expect((btn as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it("shows confirmation dialog when terminate is clicked", () => {
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      fireEvent.click(screen.getByText("Terminate"));
+
+      expect(screen.getByRole("dialog")).toBeTruthy();
+      expect(screen.getByText(/This action cannot be undone/)).toBeTruthy();
+      expect(screen.getByText("Confirm")).toBeTruthy();
+      expect(screen.getByText("Cancel")).toBeTruthy();
+    });
+
+    it("calls mutate when confirm is clicked", () => {
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      fireEvent.click(screen.getByText("Terminate"));
+      fireEvent.click(screen.getByText("Confirm"));
+
+      expect(mutateFn).toHaveBeenCalledWith("agent-1");
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("hides confirmation dialog when cancel is clicked", () => {
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      fireEvent.click(screen.getByText("Terminate"));
+      expect(screen.getByRole("dialog")).toBeTruthy();
+
+      fireEvent.click(screen.getByText("Cancel"));
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(mutateFn).not.toHaveBeenCalled();
+    });
+
+    it("shows 'Terminating...' text while mutation is pending", () => {
+      mockUseTerminateAgent.mockReturnValue({
+        mutate: mutateFn,
+        isPending: true,
+        isSuccess: false,
+        isError: false,
+        error: null,
+      } as unknown as ReturnType<typeof useTerminateAgent>);
+
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      expect(screen.getByText("Terminating...")).toBeTruthy();
+      expect((screen.getByText("Terminating...") as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it("shows success message after termination", () => {
+      mockUseTerminateAgent.mockReturnValue({
+        mutate: mutateFn,
+        isPending: false,
+        isSuccess: true,
+        isError: false,
+        error: null,
+      } as unknown as ReturnType<typeof useTerminateAgent>);
+
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      expect(screen.getByText(/termination initiated/)).toBeTruthy();
+    });
+
+    it("shows error message when termination fails", () => {
+      mockUseTerminateAgent.mockReturnValue({
+        mutate: mutateFn,
+        isPending: false,
+        isSuccess: false,
+        isError: true,
+        error: new Error("Agent is already terminated"),
+      } as unknown as ReturnType<typeof useTerminateAgent>);
+
+      mockUseAgent.mockReturnValue({
+        data: baseAgent,
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof useAgent>);
+
+      renderPage();
+
+      expect(screen.getByText(/Termination failed/)).toBeTruthy();
+    });
   });
 });
