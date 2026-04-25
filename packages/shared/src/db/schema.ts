@@ -141,6 +141,7 @@ export const agents = pgTable(
   },
   (table) => [
     index("idx_agents_owner_id").on(table.ownerId),
+    index("idx_agents_owner_status").on(table.ownerId, table.status),
     index("idx_agents_status").on(table.status),
     index("idx_agents_environment").on(table.environment),
   ],
@@ -233,11 +234,16 @@ export const emailMessages = pgTable(
   },
   (table) => [
     index("idx_email_messages_agent_id").on(table.agentId),
+    index("idx_email_messages_agent_review_created").on(
+      table.agentId,
+      table.reviewStatus,
+      table.createdAt,
+    ),
     index("idx_email_messages_review").on(table.reviewStatus),
     index("idx_email_messages_agent_visible").on(
       table.agentId,
-      table.visibleToAgent,
       table.direction,
+      table.visibleToAgent,
     ),
     index("idx_email_messages_created_at").on(table.createdAt),
   ],
