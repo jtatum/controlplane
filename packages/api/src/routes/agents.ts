@@ -13,6 +13,7 @@ import {
 import { db } from "../db.js";
 import { getTemporalClient, TASK_QUEUE } from "../temporal.js";
 import { writeAuditLog } from "../audit.js";
+import { verifyAgentOwnership } from "../ownership.js";
 
 const UpdateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -220,15 +221,8 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const user = request.dbUser!;
 
-    const [existing] = await db
-      .select()
-      .from(agents)
-      .where(and(eq(agents.id, params.data.id), eq(agents.ownerId, user.id)))
-      .limit(1);
-
-    if (!existing) {
-      return reply.code(404).send({ error: "Agent not found" });
-    }
+    const existing = await verifyAgentOwnership(params.data.id, request, reply);
+    if (!existing) return;
 
     if (existing.status === "terminated") {
       return reply.code(409).send({ error: "Cannot update a terminated agent" });
@@ -275,15 +269,8 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const user = request.dbUser!;
 
-    const [existing] = await db
-      .select()
-      .from(agents)
-      .where(and(eq(agents.id, params.data.id), eq(agents.ownerId, user.id)))
-      .limit(1);
-
-    if (!existing) {
-      return reply.code(404).send({ error: "Agent not found" });
-    }
+    const existing = await verifyAgentOwnership(params.data.id, request, reply);
+    if (!existing) return;
 
     if (!canTransition(existing.status, "stopping")) {
       return reply.code(409).send({
