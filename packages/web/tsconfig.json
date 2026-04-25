@@ -17,5 +17,6 @@
     "rootDir": "src"
   },
   "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
   "references": [{ "path": "../shared" }]
 }

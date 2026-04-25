@@ -112,6 +112,25 @@ export default async function agentRoutes(app: FastifyInstance) {
     return reply.code(201).send(formatDetail(agent, version?.version ?? null));
   });
 
+  app.get("/versions", async (_request, reply) => {
+    const rows = await db
+      .select({
+        id: openclawVersions.id,
+        version: openclawVersions.version,
+        isDefault: openclawVersions.isDefault,
+        releasedAt: openclawVersions.releasedAt,
+      })
+      .from(openclawVersions)
+      .orderBy(openclawVersions.releasedAt);
+
+    return reply.send(
+      rows.map((r) => ({
+        ...r,
+        releasedAt: r.releasedAt.toISOString(),
+      })),
+    );
+  });
+
   app.get("/agents", async (request, reply) => {
     const query = ListQuerySchema.safeParse(request.query);
     if (!query.success) {
