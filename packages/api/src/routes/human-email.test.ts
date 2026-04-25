@@ -11,7 +11,9 @@ vi.mock("../db.js", () => {
     db: {
       select: vi.fn(),
       update: vi.fn(),
-      transaction: vi.fn(async (fn: (tx: typeof txObj) => unknown) => fn(txObj)),
+      transaction: vi.fn(async (fn: (tx: typeof txObj) => unknown) =>
+        fn(txObj),
+      ),
       _tx: txObj,
     },
   };
@@ -264,9 +266,11 @@ describe("human email routes", () => {
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         for: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved" },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "msg-1", agentId: "agent-1", reviewStatus: "approved" },
+          ]),
       };
       mockedTx.select.mockReturnValueOnce(selectChain as any);
 
@@ -277,7 +281,7 @@ describe("human email routes", () => {
       });
 
       expect(res.statusCode).toBe(409);
-      expect(res.json().error).toBe("Message already reviewed as 'approved'");
+      expect(res.json().error).toBe("Message has already been reviewed");
     });
 
     it("approves a pending message", async () => {
@@ -287,16 +291,25 @@ describe("human email routes", () => {
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         for: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+          ]),
       };
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
-        ]),
+        returning: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              id: "msg-1",
+              agentId: "agent-1",
+              reviewStatus: "approved",
+              reviewedAt: now,
+            },
+          ]),
       };
       mockedTx.select.mockReturnValueOnce(selectChain as any);
       mockedTx.update.mockReturnValueOnce(updateChain as any);
@@ -318,16 +331,25 @@ describe("human email routes", () => {
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         for: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+          ]),
       };
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "rejected", reviewedAt: now },
-        ]),
+        returning: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              id: "msg-1",
+              agentId: "agent-1",
+              reviewStatus: "rejected",
+              reviewedAt: now,
+            },
+          ]),
       };
       mockedTx.select.mockReturnValueOnce(selectChain as any);
       mockedTx.update.mockReturnValueOnce(updateChain as any);
@@ -372,16 +394,25 @@ describe("human email routes", () => {
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         for: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+          ]),
       };
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([
-          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
-        ]),
+        returning: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              id: "msg-1",
+              agentId: "agent-1",
+              reviewStatus: "approved",
+              reviewedAt: now,
+            },
+          ]),
       };
       mockedTx.select.mockReturnValueOnce(selectChain as any);
       mockedTx.update.mockReturnValueOnce(updateChain as any);

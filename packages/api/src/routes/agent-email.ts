@@ -24,7 +24,10 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     const { agentId } = (request.params ?? {}) as { agentId?: string };
     if (!agentId) return;
 
-    if (request.authenticatedAgentId && request.authenticatedAgentId !== agentId) {
+    if (
+      request.authenticatedAgentId &&
+      request.authenticatedAgentId !== agentId
+    ) {
       return reply.status(403).send({ error: "Forbidden" });
     }
   });
@@ -56,7 +59,14 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     const messageIds = messages.map((m) => m.id);
     const attachmentsByMessage = new Map<
       string,
-      { id: string; messageId: string; filename: string; contentType: string; sizeBytes: number; s3Key: string }[]
+      {
+        id: string;
+        messageId: string;
+        filename: string;
+        contentType: string;
+        sizeBytes: number;
+        s3Key: string;
+      }[]
     >();
 
     if (messageIds.length > 0) {
@@ -123,7 +133,10 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     if (!agent) return;
 
     const emailChannel = await db
-      .select({ mailboxAddress: channelEmail.mailboxAddress, outboundReview: channelEmail.outboundReview })
+      .select({
+        mailboxAddress: channelEmail.mailboxAddress,
+        outboundReview: channelEmail.outboundReview,
+      })
       .from(channelEmail)
       .innerJoin(channels, eq(channels.id, channelEmail.channelId))
       .where(and(eq(channels.agentId, agentId), eq(channels.type, "email")))
@@ -151,7 +164,10 @@ export async function agentEmailRoutes(app: FastifyInstance) {
         reviewStatus: needsReview ? "pending" : "approved",
         visibleToAgent: true,
       })
-      .returning({ id: emailMessages.id, reviewStatus: emailMessages.reviewStatus });
+      .returning({
+        id: emailMessages.id,
+        reviewStatus: emailMessages.reviewStatus,
+      });
 
     return reply.status(201).send({
       id: message.id,

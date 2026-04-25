@@ -5,15 +5,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, isLoading, error, login } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="p-8 text-center text-gray-600">Loading...</div>
-    );
+    return <div className="p-8 text-center text-gray-600">Loading...</div>;
   }
 
   if (error) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Error</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Authentication Error
+        </h2>
         <p className="text-gray-600 mb-4">{error}</p>
         <button
           type="button"
@@ -30,8 +30,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">OpenClaw Control Plane</h2>
-          <p className="text-gray-600 mb-6">Sign in to manage your AI agents.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            OpenClaw Control Plane
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Sign in to manage your AI agents.
+          </p>
           <button
             type="button"
             onClick={() => login()}

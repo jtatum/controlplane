@@ -20,9 +20,13 @@ export function CallbackPage() {
   if (error) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Error</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Authentication Error
+        </h2>
         <p className="text-gray-600 mb-4">{error}</p>
-        <a href="/" className="text-blue-600 hover:underline">Return home</a>
+        <a href="/" className="text-blue-600 hover:underline">
+          Return home
+        </a>
       </div>
     );
   }

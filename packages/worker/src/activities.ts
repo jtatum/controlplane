@@ -38,9 +38,18 @@ export interface DeliverTokenResult {
   tokenHash: string;
 }
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl && process.env.NODE_ENV === "production") {
+  throw new Error("DATABASE_URL is required in production");
+}
+
 const ec2 = new EC2Client({});
 const ssm = new SSMClient({});
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new pg.Pool({
+  connectionString:
+    databaseUrl ??
+    "postgresql://controlplane:controlplane@localhost:5432/controlplane",
+});
 
 export async function launchInstance(
   input: ProvisionAgentInput,
@@ -147,9 +156,7 @@ export async function deliverToken(input: {
   return { tokenHash };
 }
 
-export async function healthCheck(input: {
-  privateIp: string;
-}): Promise<void> {
+export async function healthCheck(input: { privateIp: string }): Promise<void> {
   const maxAttempts = 24;
   const pollIntervalMs = 5_000;
   const url = `http://${input.privateIp}:8080/health`;
@@ -277,7 +284,11 @@ export async function terminateInstance(input: {
 
 export async function cleanupAgentData(input: {
   agentId: string;
-}): Promise<{ deletedChannels: number; deletedSkills: number; archivedMessages: number }> {
+}): Promise<{
+  deletedChannels: number;
+  deletedSkills: number;
+  archivedMessages: number;
+}> {
   const channelResult = await pool.query(
     `DELETE FROM channels WHERE agent_id = $1`,
     [input.agentId],

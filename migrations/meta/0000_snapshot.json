@@ -67,12 +67,8 @@
           "name": "agent_skills_agent_id_agents_id_fk",
           "tableFrom": "agent_skills",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -80,12 +76,8 @@
           "name": "agent_skills_skill_id_skills_id_fk",
           "tableFrom": "agent_skills",
           "tableTo": "skills",
-          "columnsFrom": [
-            "skill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["skill_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -93,10 +85,7 @@
       "compositePrimaryKeys": {
         "agent_skills_agent_id_skill_id_pk": {
           "name": "agent_skills_agent_id_skill_id_pk",
-          "columns": [
-            "agent_id",
-            "skill_id"
-          ]
+          "columns": ["agent_id", "skill_id"]
         }
       },
       "uniqueConstraints": {},
@@ -278,12 +267,8 @@
           "name": "agents_owner_id_users_id_fk",
           "tableFrom": "agents",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -291,12 +276,8 @@
           "name": "agents_version_id_openclaw_versions_id_fk",
           "tableFrom": "agents",
           "tableTo": "openclaw_versions",
-          "columnsFrom": [
-            "version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -306,9 +287,7 @@
         "agents_agent_name_unique": {
           "name": "agents_agent_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "agent_name"
-          ]
+          "columns": ["agent_name"]
         }
       },
       "policies": {},
@@ -469,12 +448,8 @@
           "name": "audit_log_actor_id_users_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -482,12 +457,8 @@
           "name": "audit_log_agent_id_agents_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -549,12 +520,8 @@
           "name": "channel_email_channel_id_channels_id_fk",
           "tableFrom": "channel_email",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -564,9 +531,7 @@
         "channel_email_mailbox_address_unique": {
           "name": "channel_email_mailbox_address_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "mailbox_address"
-          ]
+          "columns": ["mailbox_address"]
         }
       },
       "policies": {},
@@ -636,12 +601,8 @@
           "name": "channel_telegram_channel_id_channels_id_fk",
           "tableFrom": "channel_telegram",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -741,12 +702,8 @@
           "name": "channels_agent_id_agents_id_fk",
           "tableFrom": "channels",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -828,12 +785,8 @@
           "name": "email_attachments_message_id_email_messages_id_fk",
           "tableFrom": "email_attachments",
           "tableTo": "email_messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1051,12 +1004,8 @@
           "name": "email_messages_agent_id_agents_id_fk",
           "tableFrom": "email_messages",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1064,12 +1013,8 @@
           "name": "email_messages_reviewed_by_users_id_fk",
           "tableFrom": "email_messages",
           "tableTo": "users",
-          "columnsFrom": [
-            "reviewed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reviewed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1155,9 +1100,7 @@
         "openclaw_versions_version_unique": {
           "name": "openclaw_versions_version_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "version"
-          ]
+          "columns": ["version"]
         }
       },
       "policies": {},
@@ -1312,12 +1255,8 @@
           "name": "provisioning_jobs_agent_id_agents_id_fk",
           "tableFrom": "provisioning_jobs",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1325,12 +1264,8 @@
           "name": "provisioning_jobs_initiated_by_users_id_fk",
           "tableFrom": "provisioning_jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "initiated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initiated_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1404,9 +1339,7 @@
         "skills_name_unique": {
           "name": "skills_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1488,16 +1421,12 @@
         "users_external_id_unique": {
           "name": "users_external_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "external_id"
-          ]
+          "columns": ["external_id"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1509,10 +1438,7 @@
     "public.agent_environment": {
       "name": "agent_environment",
       "schema": "public",
-      "values": [
-        "dev",
-        "prod"
-      ]
+      "values": ["dev", "prod"]
     },
     "public.agent_status": {
       "name": "agent_status",
@@ -1531,31 +1457,17 @@
     "public.channel_type": {
       "name": "channel_type",
       "schema": "public",
-      "values": [
-        "telegram",
-        "email",
-        "slack",
-        "discord"
-      ]
+      "values": ["telegram", "email", "slack", "discord"]
     },
     "public.email_direction": {
       "name": "email_direction",
       "schema": "public",
-      "values": [
-        "inbound",
-        "outbound"
-      ]
+      "values": ["inbound", "outbound"]
     },
     "public.provisioning_job_status": {
       "name": "provisioning_job_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "running",
-        "succeeded",
-        "failed",
-        "cancelled"
-      ]
+      "values": ["pending", "running", "succeeded", "failed", "cancelled"]
     },
     "public.provisioning_job_type": {
       "name": "provisioning_job_type",
@@ -1572,19 +1484,12 @@
     "public.review_status": {
       "name": "review_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "user"
-      ]
+      "values": ["admin", "user"]
     }
   },
   "schemas": {},

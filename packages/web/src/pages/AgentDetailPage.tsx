@@ -3,7 +3,13 @@ import { useParams, Link } from "react-router";
 import { useAgent, useTerminateAgent } from "../hooks/useAgents.js";
 import { StatusBadge } from "../components/StatusBadge.js";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mb-3">
       <dt className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">
@@ -55,15 +61,20 @@ export function AgentDetailPage() {
     );
   }
 
-  if (error) return <p className="text-red-600">Error loading agent: {String(error)}</p>;
+  if (error)
+    return <p className="text-red-600">Error loading agent: {String(error)}</p>;
   if (!agent) return <p className="text-gray-500">Agent not found.</p>;
 
-  const canTerminate = !TERMINAL_STATUSES.has(agent.status) && !terminateMutation.isPending;
+  const canTerminate =
+    !TERMINAL_STATUSES.has(agent.status) && !terminateMutation.isPending;
 
   return (
     <div>
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+        <Link
+          to="/"
+          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+        >
           &larr; All agents
         </Link>
       </div>
@@ -92,7 +103,8 @@ export function AgentDetailPage() {
           className="bg-amber-50 border border-amber-400 rounded-lg px-6 py-4 mb-4 flex items-center gap-4"
         >
           <span>
-            Terminate <strong>{agent.name}</strong>? This action cannot be undone.
+            Terminate <strong>{agent.name}</strong>? This action cannot be
+            undone.
           </span>
           <button
             type="button"
@@ -133,7 +145,9 @@ export function AgentDetailPage() {
           </h3>
           <dl>
             <Field label="Agent Name">
-              <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">{agent.agentName}</code>
+              <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">
+                {agent.agentName}
+              </code>
             </Field>
             <Field label="Environment">{agent.environment}</Field>
             <Field label="Version">{agent.version ?? "—"}</Field>
@@ -155,9 +169,7 @@ export function AgentDetailPage() {
           </h3>
           <dl>
             <Field label="Instance Type">{agent.instanceType}</Field>
-            <Field label="EC2 Instance">
-              {agent.ec2InstanceId ?? "—"}
-            </Field>
+            <Field label="EC2 Instance">{agent.ec2InstanceId ?? "—"}</Field>
             <Field label="Private IP">{agent.privateIp ?? "—"}</Field>
             <Field label="Availability Zone">
               {agent.availabilityZone ?? "—"}

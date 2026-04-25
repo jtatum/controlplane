@@ -44,8 +44,13 @@ async function ensureDevUser() {
 }
 
 async function oidcAuth(app: FastifyInstance) {
-  if (process.env.NODE_ENV === "production" && process.env.DEV_MODE === "true") {
-    throw new Error("FATAL: DEV_MODE=true is not allowed when NODE_ENV=production");
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.DEV_MODE === "true"
+  ) {
+    throw new Error(
+      "FATAL: DEV_MODE=true is not allowed when NODE_ENV=production",
+    );
   }
 
   const devMode = process.env.DEV_MODE === "true";
@@ -130,7 +135,9 @@ async function oidcAuth(app: FastifyInstance) {
 
       const header = request.headers.authorization;
       if (!header?.startsWith("Bearer ")) {
-        reply.code(401).send({ error: "Missing or invalid authorization header" });
+        reply
+          .code(401)
+          .send({ error: "Missing or invalid authorization header" });
         return;
       }
 

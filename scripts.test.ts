@@ -3,9 +3,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const pkg = JSON.parse(
-  readFileSync(join(__dirname, "package.json"), "utf-8"),
-);
+const pkg = JSON.parse(readFileSync(join(__dirname, "package.json"), "utf-8"));
 
 // eslint is not yet installed — skip until dependency is added
 const KNOWN_MISSING: Set<string> = new Set(["lint"]);
@@ -51,7 +49,10 @@ describe("root package.json scripts", () => {
 
   it("has a binary check for every script", () => {
     const missing = scriptNames.filter((s) => !(s in binaryChecks));
-    expect(missing, `Scripts without binary checks: ${missing.join(", ")}`).toEqual([]);
+    expect(
+      missing,
+      `Scripts without binary checks: ${missing.join(", ")}`,
+    ).toEqual([]);
   });
 
   describe.each(scriptNames)("%s", (name) => {

@@ -35,12 +35,17 @@ export async function humanEmailRoutes(app: FastifyInstance) {
     if (!["pending", "approved", "rejected"].includes(status)) {
       return reply
         .status(400)
-        .send({ error: "Invalid status filter. Use: pending, approved, rejected" });
+        .send({
+          error: "Invalid status filter. Use: pending, approved, rejected",
+        });
     }
 
     const user = request.dbUser!;
     const conditions = [
-      eq(emailMessages.reviewStatus, status as "pending" | "approved" | "rejected"),
+      eq(
+        emailMessages.reviewStatus,
+        status as "pending" | "approved" | "rejected",
+      ),
     ];
 
     if (!isAdmin(request)) {
@@ -235,7 +240,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
 
     if (result.status === 409) {
       return reply.status(409).send({
-        error: `Message already reviewed as '${result.reviewStatus}'`,
+        error: "Message has already been reviewed",
       });
     }
 

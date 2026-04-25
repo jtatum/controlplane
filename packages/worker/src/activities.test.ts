@@ -127,7 +127,9 @@ describe("cleanupAgentData", () => {
 
     expect(mockPoolQuery).toHaveBeenCalledTimes(3);
     expect(mockPoolQuery.mock.calls[0][0]).toContain("DELETE FROM channels");
-    expect(mockPoolQuery.mock.calls[1][0]).toContain("DELETE FROM agent_skills");
+    expect(mockPoolQuery.mock.calls[1][0]).toContain(
+      "DELETE FROM agent_skills",
+    );
     expect(mockPoolQuery.mock.calls[2][0]).toContain("UPDATE email_messages");
   });
 

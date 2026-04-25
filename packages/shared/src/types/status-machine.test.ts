@@ -79,7 +79,11 @@ describe("assertTransition", () => {
 
 describe("allowedTransitions", () => {
   it("returns allowed targets for running", () => {
-    expect(allowedTransitions("running")).toEqual(["updating", "stopping", "error"]);
+    expect(allowedTransitions("running")).toEqual([
+      "updating",
+      "stopping",
+      "error",
+    ]);
   });
 
   it("returns empty array for terminated", () => {

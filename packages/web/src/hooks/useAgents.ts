@@ -32,9 +32,12 @@ export function useTerminateAgent() {
 
   return useMutation({
     mutationFn: async (agentId: string) => {
-      const res = await authFetch(`/agents/${encodeURIComponent(agentId)}/terminate`, {
-        method: "POST",
-      });
+      const res = await authFetch(
+        `/agents/${encodeURIComponent(agentId)}/terminate`,
+        {
+          method: "POST",
+        },
+      );
       return res.json() as Promise<AgentDetail>;
     },
     onSuccess: (_data, agentId) => {

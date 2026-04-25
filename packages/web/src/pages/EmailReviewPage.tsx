@@ -50,7 +50,10 @@ export function EmailReviewPage() {
   const [agentFilter, setAgentFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useEmailsForReview(statusFilter, agentFilter);
+  const { data, isLoading, error } = useEmailsForReview(
+    statusFilter,
+    agentFilter,
+  );
   const reviewMutation = useReviewEmail();
 
   const messages = data?.messages ?? [];
@@ -152,7 +155,11 @@ export function EmailReviewPage() {
 
       {!isLoading && isLoading === false && (
         <>
-          {error && <p className="text-red-600">Error loading emails: {String(error)}</p>}
+          {error && (
+            <p className="text-red-600">
+              Error loading emails: {String(error)}
+            </p>
+          )}
 
           {!error && filtered.length === 0 && (
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">

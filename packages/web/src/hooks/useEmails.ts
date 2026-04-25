@@ -13,10 +13,7 @@ interface EmailListResponse {
   offset: number;
 }
 
-export function useEmailsForReview(
-  status: string,
-  agentId: string,
-) {
+export function useEmailsForReview(status: string, agentId: string) {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (agentId) params.set("agentId", agentId);
@@ -41,11 +38,14 @@ export function useReviewEmail() {
       status: "approved" | "rejected";
       note?: string;
     }) => {
-      const res = await authFetch(`/emails/${encodeURIComponent(messageId)}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, note }),
-      });
+      const res = await authFetch(
+        `/emails/${encodeURIComponent(messageId)}/review`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, note }),
+        },
+      );
       return res.json();
     },
     onSuccess: () => {
