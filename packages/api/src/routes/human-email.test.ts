@@ -277,7 +277,7 @@ describe("human email routes", () => {
       });
 
       expect(res.statusCode).toBe(409);
-      expect(res.json().error).toBe("Message already reviewed");
+      expect(res.json().error).toBe("Message already reviewed as 'approved'");
     });
 
     it("approves a pending message", async () => {
