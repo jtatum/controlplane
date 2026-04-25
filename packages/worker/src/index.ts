@@ -7,6 +7,8 @@ import {
   MAX_CONCURRENT_ACTIVITY_TASKS,
   buildWorkerIdentity,
 } from "./config.js";
+import { logger } from "./logger.js";
+import { startHealthServer } from "./health.js";
 
 async function run() {
   const connection = await NativeConnection.connect({
@@ -31,13 +33,21 @@ async function run() {
     maxConcurrentActivityTaskExecutions: MAX_CONCURRENT_ACTIVITY_TASKS,
   });
 
-  console.log(
-    `Temporal worker started: identity=${identity} queue=${TASK_QUEUE} workflows=${MAX_CONCURRENT_WORKFLOW_TASKS} activities=${MAX_CONCURRENT_ACTIVITY_TASKS}`,
+  startHealthServer();
+
+  logger.info(
+    {
+      identity,
+      taskQueue: TASK_QUEUE,
+      maxWorkflows: MAX_CONCURRENT_WORKFLOW_TASKS,
+      maxActivities: MAX_CONCURRENT_ACTIVITY_TASKS,
+    },
+    "temporal worker started",
   );
   await worker.run();
 }
 
 run().catch((err) => {
-  console.error("Worker failed:", err);
+  logger.fatal({ err }, "worker failed");
   process.exit(1);
 });
