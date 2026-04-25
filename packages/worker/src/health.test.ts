@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi, beforeEach } from "vitest";
 import { type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 
 vi.mock("./logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), fatal: vi.fn() },
@@ -38,7 +39,7 @@ describe("health server", () => {
   it("responds 200 with { status: ok } on GET /health", async () => {
     server = await getHealthServer();
     await new Promise<void>((resolve) => server!.once("listening", resolve));
-    const port = (server.address() as any).port;
+    const port = (server.address() as AddressInfo).port;
 
     const { status, body } = await fetch200(port, "/health");
     expect(status).toBe(200);
@@ -48,7 +49,7 @@ describe("health server", () => {
   it("responds 404 for unknown paths", async () => {
     server = await getHealthServer();
     await new Promise<void>((resolve) => server!.once("listening", resolve));
-    const port = (server.address() as any).port;
+    const port = (server.address() as AddressInfo).port;
 
     const status = await fetchStatus(port, "/unknown");
     expect(status).toBe(404);
@@ -57,7 +58,7 @@ describe("health server", () => {
   it("responds 404 for non-GET methods on /health", async () => {
     server = await getHealthServer();
     await new Promise<void>((resolve) => server!.once("listening", resolve));
-    const port = (server.address() as any).port;
+    const port = (server.address() as AddressInfo).port;
 
     const status = await fetchStatus(port, "/health", "POST");
     expect(status).toBe(404);

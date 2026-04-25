@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
+import type { users } from "@controlplane/shared";
 import { humanEmailRoutes } from "./human-email.js";
 
+interface MockTx {
+  select: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+}
+
 vi.mock("../db.js", () => {
-  const txObj = {
+  const txObj: MockTx = {
     select: vi.fn(),
     update: vi.fn(),
   };
@@ -11,9 +17,7 @@ vi.mock("../db.js", () => {
     db: {
       select: vi.fn(),
       update: vi.fn(),
-      transaction: vi.fn(async (fn: (tx: typeof txObj) => unknown) =>
-        fn(txObj),
-      ),
+      transaction: vi.fn(async (fn: (tx: MockTx) => unknown) => fn(txObj)),
       _tx: txObj,
     },
   };
@@ -32,14 +36,14 @@ import { isAdmin } from "../ownership.js";
 
 const mockedDb = vi.mocked(db);
 const mockedIsAdmin = vi.mocked(isAdmin);
-const mockedTx = (db as any)._tx;
+const mockedTx = (db as unknown as { _tx: MockTx })._tx;
 
 function buildApp() {
   const app = Fastify();
   app.decorateRequest("userId", "reviewer-1");
   app.decorateRequest("dbUser", null);
   app.addHook("onRequest", async (request) => {
-    request.dbUser = { id: "reviewer-1", role: "admin" } as any;
+    request.dbUser = { id: "reviewer-1", role: "admin" } as unknown as typeof users.$inferSelect;
   });
   app.register(humanEmailRoutes);
   return app;
@@ -103,8 +107,8 @@ describe("human email routes", () => {
       };
 
       mockedDb.select
-        .mockReturnValueOnce(messagesSelect as any)
-        .mockReturnValueOnce(countSelect as any);
+        .mockReturnValueOnce(messagesSelect as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(countSelect as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -135,8 +139,8 @@ describe("human email routes", () => {
       };
 
       mockedDb.select
-        .mockReturnValueOnce(messagesSelect as any)
-        .mockReturnValueOnce(countSelect as any);
+        .mockReturnValueOnce(messagesSelect as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(countSelect as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -158,7 +162,7 @@ describe("human email routes", () => {
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      mockedDb.select.mockReturnValueOnce(selectChain as any);
+      mockedDb.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -214,8 +218,8 @@ describe("human email routes", () => {
       };
 
       mockedDb.select
-        .mockReturnValueOnce(messageSelect as any)
-        .mockReturnValueOnce(attachmentsSelect as any);
+        .mockReturnValueOnce(messageSelect as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(attachmentsSelect as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -249,7 +253,7 @@ describe("human email routes", () => {
         for: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",
@@ -272,7 +276,7 @@ describe("human email routes", () => {
             { id: "msg-1", agentId: "agent-1", reviewStatus: "approved" },
           ]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",
@@ -311,8 +315,8 @@ describe("human email routes", () => {
             },
           ]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
-      mockedTx.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
+      mockedTx.update.mockReturnValueOnce(updateChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",
@@ -351,8 +355,8 @@ describe("human email routes", () => {
             },
           ]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
-      mockedTx.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
+      mockedTx.update.mockReturnValueOnce(updateChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",
@@ -374,7 +378,7 @@ describe("human email routes", () => {
         for: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",
@@ -414,8 +418,8 @@ describe("human email routes", () => {
             },
           ]),
       };
-      mockedTx.select.mockReturnValueOnce(selectChain as any);
-      mockedTx.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>);
+      mockedTx.update.mockReturnValueOnce(updateChain as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "POST",

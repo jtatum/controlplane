@@ -95,8 +95,12 @@ export default async function agentRoutes(app: FastifyInstance) {
           config: config ?? {},
         })
         .returning();
-    } catch (err: any) {
-      if (err?.code === "23505" && err?.constraint?.includes("agent_name")) {
+    } catch (err: unknown) {
+      const dbErr = err as { code?: string; constraint?: string };
+      if (
+        dbErr.code === "23505" &&
+        dbErr.constraint?.includes("agent_name")
+      ) {
         return reply.code(409).send({ error: "Agent name already in use" });
       }
       throw err;

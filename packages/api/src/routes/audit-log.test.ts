@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
+import type { users } from "@controlplane/shared";
 import { auditLogRoutes } from "./audit-log.js";
 
 vi.mock("../db.js", () => ({
@@ -34,15 +35,15 @@ function mockEmpty() {
     where: vi.fn().mockResolvedValue([{ count: 0 }]),
   };
   mockedDb.select
-    .mockReturnValueOnce(selectChain as any)
-    .mockReturnValueOnce(countChain as any);
+    .mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>)
+    .mockReturnValueOnce(countChain as unknown as ReturnType<typeof db.select>);
 }
 
 function buildApp() {
   const app = Fastify();
   app.decorateRequest("dbUser", null);
   app.addHook("onRequest", async (request) => {
-    request.dbUser = { id: "user-1", role: "admin" } as any;
+    request.dbUser = { id: "user-1", role: "admin" } as unknown as typeof users.$inferSelect;
   });
   app.register(auditLogRoutes);
   return app;
@@ -120,8 +121,8 @@ describe("audit-log routes", () => {
         where: vi.fn().mockResolvedValue([{ count: 1 }]),
       };
       mockedDb.select
-        .mockReturnValueOnce(selectChain as any)
-        .mockReturnValueOnce(countChain as any);
+        .mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(countChain as unknown as ReturnType<typeof db.select>);
 
       const app = buildApp();
       await app.ready();
@@ -174,8 +175,8 @@ describe("audit-log routes", () => {
         where: vi.fn().mockResolvedValue([{ count: 1 }]),
       };
       mockedDb.select
-        .mockReturnValueOnce(selectChain as any)
-        .mockReturnValueOnce(countChain as any);
+        .mockReturnValueOnce(selectChain as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(countChain as unknown as ReturnType<typeof db.select>);
 
       const app = buildApp();
       await app.ready();
