@@ -60,20 +60,28 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const version = defaultVersion[0];
 
-    const [agent] = await db
-      .insert(agents)
-      .values({
-        ownerId: user.id,
-        name,
-        agentName,
-        environment,
-        instanceType: "t4g.medium",
-        bedrockRegion: "us-east-1",
-        versionId: version?.id ?? null,
-        status: "provisioning",
-        config: config ?? {},
-      })
-      .returning();
+    let agent;
+    try {
+      [agent] = await db
+        .insert(agents)
+        .values({
+          ownerId: user.id,
+          name,
+          agentName,
+          environment,
+          instanceType: "t4g.medium",
+          bedrockRegion: "us-east-1",
+          versionId: version?.id ?? null,
+          status: "provisioning",
+          config: config ?? {},
+        })
+        .returning();
+    } catch (err: any) {
+      if (err?.code === "23505" && err?.constraint?.includes("agent_name")) {
+        return reply.code(409).send({ error: "Agent name already in use" });
+      }
+      throw err;
+    }
 
     const workflowId = `provision-${agent.id}`;
     const temporal = await getTemporalClient();

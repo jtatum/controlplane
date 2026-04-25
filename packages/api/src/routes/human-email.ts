@@ -232,7 +232,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       }
 
       return reply.status(409).send({
-        error: `Message already reviewed as '${existing.reviewStatus}'`,
+        error: "Message already reviewed",
       });
     }
 
