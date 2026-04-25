@@ -1,8 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
 import * as jose from "jose";
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { users } from "@controlplane/shared";
+import { users, agents } from "@controlplane/shared";
 import { db } from "./db.js";
 
 declare module "fastify" {
@@ -10,6 +11,7 @@ declare module "fastify" {
     userId: string;
     userEmail: string;
     dbUser: typeof users.$inferSelect | null;
+    authenticatedAgentId: string;
   }
 }
 
@@ -47,6 +49,7 @@ async function oidcAuth(app: FastifyInstance) {
   app.decorateRequest("userId", "");
   app.decorateRequest("userEmail", "");
   app.decorateRequest("dbUser", null);
+  app.decorateRequest("authenticatedAgentId", "");
 
   if (devMode) {
     app.log.warn("DEV_MODE enabled — authentication is bypassed");
@@ -58,6 +61,22 @@ async function oidcAuth(app: FastifyInstance) {
       async (request: FastifyRequest, _reply: FastifyReply) => {
         if (request.url === "/health") return;
 
+        const header = request.headers.authorization;
+        if (header?.startsWith("Bearer ")) {
+          const token = header.slice(7);
+          const tokenHash = createHash("sha256").update(token).digest("hex");
+          const [agent] = await db
+            .select({ id: agents.id })
+            .from(agents)
+            .where(eq(agents.agentTokenHash, tokenHash))
+            .limit(1);
+
+          if (agent) {
+            request.authenticatedAgentId = agent.id;
+            return;
+          }
+        }
+
         request.userId = DEV_USER.externalId;
         request.userEmail = DEV_USER.email;
       },
@@ -67,6 +86,7 @@ async function oidcAuth(app: FastifyInstance) {
       "preHandler",
       async (request: FastifyRequest, _reply: FastifyReply) => {
         if (request.url === "/health") return;
+        if (request.authenticatedAgentId) return;
 
         if (!devUser) {
           devUser = await ensureDevUser();
@@ -120,8 +140,19 @@ async function oidcAuth(app: FastifyInstance) {
         request.userId = payload.sub as string;
         request.userEmail = (payload.email as string) ?? "";
       } catch {
-        reply.code(401).send({ error: "Invalid token" });
-        return;
+        const tokenHash = createHash("sha256").update(token).digest("hex");
+        const [agent] = await db
+          .select({ id: agents.id })
+          .from(agents)
+          .where(eq(agents.agentTokenHash, tokenHash))
+          .limit(1);
+
+        if (!agent) {
+          reply.code(401).send({ error: "Invalid token" });
+          return;
+        }
+
+        request.authenticatedAgentId = agent.id;
       }
     },
   );
@@ -129,6 +160,7 @@ async function oidcAuth(app: FastifyInstance) {
     "preHandler",
     async (request: FastifyRequest, reply: FastifyReply) => {
       if (request.url === "/health") return;
+      if (request.authenticatedAgentId) return;
 
       const [user] = await db
         .select()
