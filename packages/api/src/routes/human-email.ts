@@ -169,7 +169,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       .update(emailMessages)
       .set({
         reviewStatus: parsed.data.status,
-        reviewedBy: request.userId ?? null,
+        reviewedBy: request.dbUser?.id ?? null,
         reviewedAt: new Date(),
         reviewNote: parsed.data.note ?? null,
         visibleToAgent: parsed.data.status === "approved",
