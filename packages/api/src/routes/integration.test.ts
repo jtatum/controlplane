@@ -286,7 +286,8 @@ describe("POST /api/agents/:id/terminate", () => {
     await pool.query("UPDATE agents SET status = 'terminated' WHERE id = $1", [agent.id]);
     const res = await app.inject({ method: "POST", url: `/api/agents/${agent.id}/terminate` });
     expect(res.statusCode).toBe(409);
-    expect(res.json().error).toBe("Agent is already terminated");
+    expect(res.json().error).toContain("Cannot terminate agent");
+    expect(res.json().allowedTransitions).toEqual([]);
   });
 
   it("returns 409 for already stopping agent", async () => {
@@ -294,7 +295,23 @@ describe("POST /api/agents/:id/terminate", () => {
     await pool.query("UPDATE agents SET status = 'stopping' WHERE id = $1", [agent.id]);
     const res = await app.inject({ method: "POST", url: `/api/agents/${agent.id}/terminate` });
     expect(res.statusCode).toBe(409);
-    expect(res.json().error).toBe("Agent is already stopping");
+    expect(res.json().error).toContain("Cannot terminate agent");
+  });
+
+  it("returns 409 for agent in stopped status", async () => {
+    const agent = await createAgent("stopped-agent");
+    await pool.query("UPDATE agents SET status = 'stopped' WHERE id = $1", [agent.id]);
+    const res = await app.inject({ method: "POST", url: `/api/agents/${agent.id}/terminate` });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toContain("Cannot terminate agent");
+  });
+
+  it("returns 409 for agent in requested status", async () => {
+    const agent = await createAgent("requested-agent");
+    await pool.query("UPDATE agents SET status = 'requested' WHERE id = $1", [agent.id]);
+    const res = await app.inject({ method: "POST", url: `/api/agents/${agent.id}/terminate` });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toContain("Cannot terminate agent");
   });
 });
 
