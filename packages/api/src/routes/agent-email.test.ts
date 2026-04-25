@@ -50,7 +50,7 @@ describe("agent email routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockedVerify.mockResolvedValue({ id: "agent-1", ownerId: "user-1" } as any);
+    mockedVerify.mockResolvedValue({ id: "agent-1", ownerId: "user-1" } as unknown as Awaited<ReturnType<typeof verifyAgentOwnership>>);
     app = buildApp();
     await app.ready();
   });
@@ -134,8 +134,8 @@ describe("agent email routes", () => {
       };
 
       mockedDb.select
-        .mockReturnValueOnce(messagesSelect as any)
-        .mockReturnValueOnce(attachmentsSelect as any);
+        .mockReturnValueOnce(messagesSelect as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(attachmentsSelect as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -160,7 +160,7 @@ describe("agent email routes", () => {
         offset: vi.fn().mockResolvedValue([]),
       };
 
-      mockedDb.select.mockReturnValueOnce(messagesSelect as any);
+      mockedDb.select.mockReturnValueOnce(messagesSelect as unknown as ReturnType<typeof db.select>);
 
       const res = await app.inject({
         method: "GET",
@@ -247,8 +247,8 @@ describe("agent email routes", () => {
           .mockResolvedValue([{ id: "msg-new", reviewStatus: "pending" }]),
       };
 
-      mockedDb.select.mockReturnValueOnce(channelSelect as any);
-      mockedDb.insert.mockReturnValueOnce(insertChain as any);
+      mockedDb.select.mockReturnValueOnce(channelSelect as unknown as ReturnType<typeof db.select>);
+      mockedDb.insert.mockReturnValueOnce(insertChain as unknown as ReturnType<typeof db.insert>);
 
       const res = await app.inject({
         method: "POST",
@@ -287,8 +287,8 @@ describe("agent email routes", () => {
           .mockResolvedValue([{ id: "msg-new", reviewStatus: "approved" }]),
       };
 
-      mockedDb.select.mockReturnValueOnce(channelSelect as any);
-      mockedDb.insert.mockReturnValueOnce(insertChain as any);
+      mockedDb.select.mockReturnValueOnce(channelSelect as unknown as ReturnType<typeof db.select>);
+      mockedDb.insert.mockReturnValueOnce(insertChain as unknown as ReturnType<typeof db.insert>);
 
       const res = await app.inject({
         method: "POST",

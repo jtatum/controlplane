@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import Fastify from "fastify";
+import type { users } from "@controlplane/shared";
 import agentRoutes from "./agents.js";
 
 vi.mock("../db.js", () => ({
@@ -37,7 +38,7 @@ function buildApp() {
   const app = Fastify();
   app.decorateRequest("dbUser", null);
   app.addHook("onRequest", async (request) => {
-    request.dbUser = { id: "user-1", role: "user" } as any;
+    request.dbUser = { id: "user-1", role: "user" } as unknown as typeof users.$inferSelect;
   });
   app.register(agentRoutes);
   return app;
@@ -69,18 +70,20 @@ describe("agent routes ownership", () => {
           ]),
       };
       mockedDb.select
-        .mockReturnValueOnce(activeAgentSelect as any)
-        .mockReturnValueOnce(versionSelect as any);
+        .mockReturnValueOnce(activeAgentSelect as unknown as ReturnType<typeof db.select>)
+        .mockReturnValueOnce(versionSelect as unknown as ReturnType<typeof db.select>);
 
-      const uniqueError = new Error("unique violation") as any;
-      uniqueError.code = "23505";
-      uniqueError.constraint = "idx_agents_agent_name";
+      const uniqueError: Error & { code?: string; constraint?: string } =
+        Object.assign(new Error("unique violation"), {
+          code: "23505",
+          constraint: "idx_agents_agent_name",
+        });
 
       const insertChain = {
         values: vi.fn().mockReturnThis(),
         returning: vi.fn().mockRejectedValue(uniqueError),
       };
-      mockedDb.insert.mockReturnValueOnce(insertChain as any);
+      mockedDb.insert.mockReturnValueOnce(insertChain as unknown as ReturnType<typeof db.insert>);
 
       const res = await app.inject({
         method: "POST",
@@ -136,7 +139,7 @@ describe("agent routes ownership", () => {
         ownerId: "user-1",
         status: "running",
         versionId: null,
-      } as any);
+      } as unknown as Awaited<ReturnType<typeof verifyAgentOwnership>>);
 
       const updateChain = {
         set: vi.fn().mockReturnThis(),
@@ -162,7 +165,7 @@ describe("agent routes ownership", () => {
           },
         ]),
       };
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
+      mockedDb.update.mockReturnValueOnce(updateChain as unknown as ReturnType<typeof db.update>);
 
       const res = await app.inject({
         method: "PATCH",
