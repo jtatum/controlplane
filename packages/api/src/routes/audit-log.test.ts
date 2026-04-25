@@ -8,12 +8,20 @@ vi.mock("../db.js", () => ({
   },
 }));
 
+vi.mock("../ownership.js", () => ({
+  isAdmin: vi.fn().mockReturnValue(true),
+}));
+
 import { db } from "../db.js";
+import { isAdmin } from "../ownership.js";
+
 const mockedDb = vi.mocked(db);
+const mockedIsAdmin = vi.mocked(isAdmin);
 
 function mockEmpty() {
   const selectChain = {
     from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     leftJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
@@ -22,6 +30,7 @@ function mockEmpty() {
   };
   const countChain = {
     from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockResolvedValue([{ count: 0 }]),
   };
   mockedDb.select
@@ -31,6 +40,10 @@ function mockEmpty() {
 
 function buildApp() {
   const app = Fastify();
+  app.decorateRequest("dbUser", null);
+  app.addHook("onRequest", async (request) => {
+    request.dbUser = { id: "user-1", role: "admin" } as any;
+  });
   app.register(auditLogRoutes);
   return app;
 }
@@ -38,6 +51,7 @@ function buildApp() {
 describe("audit-log routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedIsAdmin.mockReturnValue(true);
   });
 
   describe("GET /audit-log", () => {
@@ -79,6 +93,7 @@ describe("audit-log routes", () => {
       const now = new Date();
       const selectChain = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         leftJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         orderBy: vi.fn().mockReturnThis(),
@@ -101,6 +116,7 @@ describe("audit-log routes", () => {
       };
       const countChain = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockResolvedValue([{ count: 1 }]),
       };
       mockedDb.select
@@ -122,6 +138,76 @@ describe("audit-log routes", () => {
       expect(body.data[0].actorEmail).toBe("dev@openclaw.local");
       expect(body.total).toBe(1);
 
+      await app.close();
+    });
+
+    it("non-admin: filters to owned agents only", async () => {
+      mockedIsAdmin.mockReturnValue(false);
+
+      const now = new Date();
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        leftJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        offset: vi.fn().mockResolvedValue([
+          {
+            id: "entry-1",
+            actorId: "user-1",
+            actorType: "user",
+            actorEmail: "dev@openclaw.local",
+            agentId: "agent-1",
+            action: "agent.create",
+            resourceType: "agent",
+            resourceId: "agent-1",
+            detail: {},
+            ipAddress: "127.0.0.1",
+            createdAt: now,
+          },
+        ]),
+      };
+      const countChain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([{ count: 1 }]),
+      };
+      mockedDb.select
+        .mockReturnValueOnce(selectChain as any)
+        .mockReturnValueOnce(countChain as any);
+
+      const app = buildApp();
+      await app.ready();
+
+      const res = await app.inject({
+        method: "GET",
+        url: "/audit-log",
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.data).toHaveLength(1);
+      expect(body.total).toBe(1);
+      expect(selectChain.where).toHaveBeenCalled();
+      expect(countChain.where).toHaveBeenCalled();
+      await app.close();
+    });
+
+    it("admin: sees all audit logs without ownership filter", async () => {
+      mockedIsAdmin.mockReturnValue(true);
+      mockEmpty();
+
+      const app = buildApp();
+      await app.ready();
+
+      const res = await app.inject({
+        method: "GET",
+        url: "/audit-log",
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(mockedIsAdmin).toHaveBeenCalled();
       await app.close();
     });
   });

@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { z } from "zod";
-import { auditLog, users } from "@controlplane/shared";
+import { auditLog, users, agents } from "@controlplane/shared";
 import { db } from "../db.js";
+import { isAdmin } from "../ownership.js";
 
 const QuerySchema = z.object({
   agentId: z.string().uuid().optional(),
@@ -26,7 +27,12 @@ export async function auditLogRoutes(app: FastifyInstance) {
     }
 
     const { agentId, actorId, action, from, to, limit, offset } = query.data;
+    const user = request.dbUser!;
     const conditions = [];
+
+    if (!isAdmin(request)) {
+      conditions.push(eq(agents.ownerId, user.id));
+    }
 
     if (agentId) conditions.push(eq(auditLog.agentId, agentId));
     if (actorId) conditions.push(eq(auditLog.actorId, actorId));
@@ -52,6 +58,7 @@ export async function auditLogRoutes(app: FastifyInstance) {
           createdAt: auditLog.createdAt,
         })
         .from(auditLog)
+        .innerJoin(agents, eq(auditLog.agentId, agents.id))
         .leftJoin(users, eq(auditLog.actorId, users.id))
         .where(where)
         .orderBy(desc(auditLog.createdAt))
@@ -60,6 +67,7 @@ export async function auditLogRoutes(app: FastifyInstance) {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(auditLog)
+        .innerJoin(agents, eq(auditLog.agentId, agents.id))
         .where(where),
     ]);
 
