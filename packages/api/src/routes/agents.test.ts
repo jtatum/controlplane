@@ -52,6 +52,40 @@ describe("agent routes ownership", () => {
     await app.ready();
   });
 
+  describe("POST /agents", () => {
+    it("returns 409 when agentName is already taken", async () => {
+      const versionSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: "v-1", amiId: "ami-123", version: "1.0.0" }]),
+      };
+      mockedDb.select.mockReturnValueOnce(versionSelect as any);
+
+      const uniqueError = new Error("unique violation") as any;
+      uniqueError.code = "23505";
+      uniqueError.constraint = "idx_agents_agent_name";
+
+      const insertChain = {
+        values: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockRejectedValue(uniqueError),
+      };
+      mockedDb.insert.mockReturnValueOnce(insertChain as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/agents",
+        payload: {
+          name: "My Agent",
+          agentName: "taken-name",
+          environment: "dev",
+        },
+      });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error).toBe("Agent name already in use");
+    });
+  });
+
   describe("PATCH /agents/:id", () => {
     it("returns 403 when user does not own agent", async () => {
       mockedVerify.mockImplementationOnce(async (_id, _req, reply) => {
