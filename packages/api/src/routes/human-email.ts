@@ -182,74 +182,77 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       });
     }
 
-    if (!isAdmin(request)) {
-      const [owned] = await db
-        .select({ id: emailMessages.id })
+    const result = await db.transaction(async (tx) => {
+      const ownerConditions = [eq(emailMessages.id, messageId)];
+      if (!isAdmin(request)) {
+        ownerConditions.push(eq(agents.ownerId, user.id));
+      }
+
+      const [locked] = await tx
+        .select({
+          id: emailMessages.id,
+          agentId: emailMessages.agentId,
+          reviewStatus: emailMessages.reviewStatus,
+        })
         .from(emailMessages)
         .innerJoin(agents, eq(agents.id, emailMessages.agentId))
-        .where(
-          and(eq(emailMessages.id, messageId), eq(agents.ownerId, user.id)),
-        )
+        .where(and(...ownerConditions))
+        .for("update")
         .limit(1);
 
-      if (!owned) {
-        return reply.status(404).send({ error: "Message not found" });
+      if (!locked) {
+        return { status: 404 as const };
       }
+
+      if (locked.reviewStatus !== "pending") {
+        return { status: 409 as const, reviewStatus: locked.reviewStatus };
+      }
+
+      const [updated] = await tx
+        .update(emailMessages)
+        .set({
+          reviewStatus: parsed.data.status,
+          reviewedBy: user.id,
+          reviewedAt: new Date(),
+          reviewNote: parsed.data.note ?? null,
+          visibleToAgent: parsed.data.status === "approved",
+          updatedAt: new Date(),
+        })
+        .where(eq(emailMessages.id, messageId))
+        .returning({
+          id: emailMessages.id,
+          agentId: emailMessages.agentId,
+          reviewStatus: emailMessages.reviewStatus,
+          reviewedAt: emailMessages.reviewedAt,
+        });
+
+      return { status: 200 as const, data: updated };
+    });
+
+    if (result.status === 404) {
+      return reply.status(404).send({ error: "Message not found" });
     }
 
-    const [updated] = await db
-      .update(emailMessages)
-      .set({
-        reviewStatus: parsed.data.status,
-        reviewedBy: request.dbUser?.id ?? null,
-        reviewedAt: new Date(),
-        reviewNote: parsed.data.note ?? null,
-        visibleToAgent: parsed.data.status === "approved",
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(emailMessages.id, messageId),
-          eq(emailMessages.reviewStatus, "pending"),
-        ),
-      )
-      .returning({
-        id: emailMessages.id,
-        agentId: emailMessages.agentId,
-        reviewStatus: emailMessages.reviewStatus,
-        reviewedAt: emailMessages.reviewedAt,
-      });
-
-    if (!updated) {
-      const [existing] = await db
-        .select({ id: emailMessages.id, reviewStatus: emailMessages.reviewStatus })
-        .from(emailMessages)
-        .where(eq(emailMessages.id, messageId))
-        .limit(1);
-
-      if (!existing) {
-        return reply.status(404).send({ error: "Message not found" });
-      }
-
+    if (result.status === 409) {
       return reply.status(409).send({
-        error: "Message already reviewed",
+        error: `Message already reviewed as '${result.reviewStatus}'`,
       });
     }
 
     await writeAuditLog({
-      actorId: request.dbUser?.id ?? "",
+      actorId: user.id,
       action: `email.review.${parsed.data.status}`,
       resourceType: "email",
       resourceId: messageId,
-      agentId: updated.agentId,
+      agentId: result.data.agentId,
       detail: { status: parsed.data.status, note: parsed.data.note ?? null },
       ipAddress: request.ip,
     });
 
     return {
-      id: updated.id,
-      reviewStatus: updated.reviewStatus,
-      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+      id: result.data.id,
+      reviewStatus: result.data.reviewStatus,
+      reviewedAt: result.data.reviewedAt?.toISOString() ?? null,
     };
   });
 }

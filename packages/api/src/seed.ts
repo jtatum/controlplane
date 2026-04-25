@@ -12,6 +12,10 @@ import {
 } from "@controlplane/shared";
 
 async function seed() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed script must not run in production");
+  }
+
   console.log("Seeding database...");
 
   // Users

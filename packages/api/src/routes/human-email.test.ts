@@ -3,10 +3,16 @@ import Fastify from "fastify";
 import { humanEmailRoutes } from "./human-email.js";
 
 vi.mock("../db.js", () => {
+  const txObj = {
+    select: vi.fn(),
+    update: vi.fn(),
+  };
   return {
     db: {
       select: vi.fn(),
       update: vi.fn(),
+      transaction: vi.fn(async (fn: (tx: typeof txObj) => unknown) => fn(txObj)),
+      _tx: txObj,
     },
   };
 });
@@ -24,6 +30,7 @@ import { isAdmin } from "../ownership.js";
 
 const mockedDb = vi.mocked(db);
 const mockedIsAdmin = vi.mocked(isAdmin);
+const mockedTx = (db as any)._tx;
 
 function buildApp() {
   const app = Fastify();
@@ -233,19 +240,14 @@ describe("human email routes", () => {
     });
 
     it("returns 404 for unknown message", async () => {
-      const updateChain = {
-        set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([]),
-      };
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
-
       const selectChain = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
+        for: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      mockedDb.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
 
       const res = await app.inject({
         method: "POST",
@@ -257,21 +259,16 @@ describe("human email routes", () => {
     });
 
     it("returns 409 for already reviewed message", async () => {
-      const updateChain = {
-        set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([]),
-      };
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
-
       const selectChain = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
+        for: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([
-          { id: "msg-1", reviewStatus: "approved" },
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved" },
         ]),
       };
-      mockedDb.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
 
       const res = await app.inject({
         method: "POST",
@@ -285,6 +282,15 @@ describe("human email routes", () => {
 
     it("approves a pending message", async () => {
       const now = new Date();
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        for: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+        ]),
+      };
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -292,7 +298,8 @@ describe("human email routes", () => {
           { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
         ]),
       };
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.update.mockReturnValueOnce(updateChain as any);
 
       const res = await app.inject({
         method: "POST",
@@ -306,6 +313,15 @@ describe("human email routes", () => {
 
     it("rejects a pending message", async () => {
       const now = new Date();
+      const selectChain = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        for: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+        ]),
+      };
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -313,7 +329,8 @@ describe("human email routes", () => {
           { id: "msg-1", agentId: "agent-1", reviewStatus: "rejected", reviewedAt: now },
         ]),
       };
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.update.mockReturnValueOnce(updateChain as any);
 
       const res = await app.inject({
         method: "POST",
@@ -328,13 +345,14 @@ describe("human email routes", () => {
     it("non-admin: returns 404 when message not owned", async () => {
       mockedIsAdmin.mockReturnValue(false);
 
-      const ownershipSelect = {
+      const selectChain = {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
+        for: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
-      mockedDb.select.mockReturnValueOnce(ownershipSelect as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
 
       const res = await app.inject({
         method: "POST",
@@ -349,13 +367,15 @@ describe("human email routes", () => {
       mockedIsAdmin.mockReturnValue(false);
       const now = new Date();
 
-      const ownershipSelect = {
+      const selectChain = {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "msg-1" }]),
+        for: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "pending" },
+        ]),
       };
-
       const updateChain = {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -363,9 +383,8 @@ describe("human email routes", () => {
           { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
         ]),
       };
-
-      mockedDb.select.mockReturnValueOnce(ownershipSelect as any);
-      mockedDb.update.mockReturnValueOnce(updateChain as any);
+      mockedTx.select.mockReturnValueOnce(selectChain as any);
+      mockedTx.update.mockReturnValueOnce(updateChain as any);
 
       const res = await app.inject({
         method: "POST",

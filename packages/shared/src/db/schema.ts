@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
   primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
 
 // -- Enums --
@@ -246,6 +247,10 @@ export const emailMessages = pgTable(
       table.visibleToAgent,
     ),
     index("idx_email_messages_created_at").on(table.createdAt),
+    check(
+      "chk_review_visible_consistency",
+      sql`review_status = 'pending' OR (review_status = 'approved') = visible_to_agent`,
+    ),
   ],
 );
 
@@ -309,9 +314,9 @@ export const provisioningJobs = pgTable(
   "provisioning_jobs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    agentId: uuid("agent_id").references(() => agents.id, {
-      onDelete: "set null",
-    }),
+    agentId: uuid("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
     type: provisioningJobTypeEnum("type").notNull(),
     status: provisioningJobStatusEnum("status").notNull().default("pending"),
     initiatedBy: uuid("initiated_by")

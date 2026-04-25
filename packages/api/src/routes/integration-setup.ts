@@ -1,5 +1,5 @@
 import pg from "pg";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { resolve } from "path";
 
 const TEST_DB = "controlplane_test";
@@ -13,17 +13,20 @@ export async function setupTestDatabase() {
   await admin.query(`CREATE DATABASE ${TEST_DB}`);
   await admin.end();
 
-  const migration = readFileSync(
-    resolve(import.meta.dirname, "../../../../migrations/0000_cold_smiling_tiger.sql"),
-    "utf-8",
-  );
+  const migrationsDir = resolve(import.meta.dirname, "../../../../migrations");
+  const migrationFiles = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
   const test = new pg.Client(TEST_URL);
   await test.connect();
-  const statements = migration.split("--> statement-breakpoint");
-  for (const stmt of statements) {
-    const trimmed = stmt.trim();
-    if (trimmed) await test.query(trimmed);
+  for (const file of migrationFiles) {
+    const migration = readFileSync(resolve(migrationsDir, file), "utf-8");
+    const statements = migration.split("--> statement-breakpoint");
+    for (const stmt of statements) {
+      const trimmed = stmt.trim();
+      if (trimmed) await test.query(trimmed);
+    }
   }
   await test.end();
 
