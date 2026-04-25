@@ -98,7 +98,11 @@ async function seed() {
       versionId,
       bedrockRegion: "us-east-1",
       config: {
-        model: { id: "anthropic.claude-sonnet-4-20250514-v1:0", temperature: 0.7, maxTokens: 4096 },
+        model: {
+          id: "anthropic.claude-sonnet-4-20250514-v1:0",
+          temperature: 0.7,
+          maxTokens: 4096,
+        },
         gateway: { rateLimit: 60 },
         features: { systemPrompt: true },
       },
@@ -112,7 +116,11 @@ async function seed() {
       versionId,
       bedrockRegion: "us-east-1",
       config: {
-        model: { id: "anthropic.claude-sonnet-4-20250514-v1:0", temperature: 0.5, maxTokens: 8192 },
+        model: {
+          id: "anthropic.claude-sonnet-4-20250514-v1:0",
+          temperature: 0.5,
+          maxTokens: 8192,
+        },
         gateway: { rateLimit: 30 },
         features: {},
       },
@@ -126,7 +134,11 @@ async function seed() {
       versionId,
       bedrockRegion: "us-west-2",
       config: {
-        model: { id: "anthropic.claude-haiku-4-5-20251001-v1:0", temperature: 0.3, maxTokens: 2048 },
+        model: {
+          id: "anthropic.claude-haiku-4-5-20251001-v1:0",
+          temperature: 0.3,
+          maxTokens: 2048,
+        },
         gateway: { rateLimit: 120 },
         features: {},
       },
@@ -228,7 +240,8 @@ async function seed() {
       sender: "support@agents.openclaw.local",
       recipients: ["returns@example.com"],
       subject: "Return authorization for order #11111",
-      bodyText: "I've authorized the return. Please ship the item back within 14 days.",
+      bodyText:
+        "I've authorized the return. Please ship the item back within 14 days.",
       reviewStatus: "rejected" as const,
       reviewedBy: ownerId,
       reviewNote: "Agent should not authorize returns without manager approval",

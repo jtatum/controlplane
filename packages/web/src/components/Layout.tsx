@@ -10,8 +10,7 @@ const navItems = [
 
 export function Layout() {
   const { user, logout } = useAuth();
-  const displayName =
-    user?.profile?.name ?? user?.profile?.email ?? "User";
+  const displayName = user?.profile?.name ?? user?.profile?.email ?? "User";
 
   return (
     <div className="flex min-h-screen">

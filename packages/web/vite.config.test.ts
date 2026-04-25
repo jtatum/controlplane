@@ -14,9 +14,9 @@ describe("vite config production guard", () => {
   it("throws when VITE_DEV_MODE=true in production mode", async () => {
     process.env.VITE_DEV_MODE = "true";
     const { default: configFn } = await import("./vite.config.js");
-    expect(() => configFn({ mode: "production", command: "build" } as any)).toThrow(
-      "FATAL: VITE_DEV_MODE=true is not allowed in production builds",
-    );
+    expect(() =>
+      configFn({ mode: "production", command: "build" } as any),
+    ).toThrow("FATAL: VITE_DEV_MODE=true is not allowed in production builds");
   });
 
   it("allows VITE_DEV_MODE=true in development mode", async () => {

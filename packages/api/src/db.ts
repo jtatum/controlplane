@@ -7,7 +7,8 @@ if (!databaseUrl && process.env.NODE_ENV === "production") {
 }
 
 export const db = drizzle(
-  databaseUrl ?? "postgresql://controlplane:controlplane@localhost:5432/controlplane",
+  databaseUrl ??
+    "postgresql://controlplane:controlplane@localhost:5432/controlplane",
   { schema },
 );
 export type Db = typeof db;

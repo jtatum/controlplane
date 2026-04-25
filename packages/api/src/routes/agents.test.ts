@@ -62,7 +62,11 @@ describe("agent routes ownership", () => {
       const versionSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "v-1", amiId: "ami-123", version: "1.0.0" }]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "v-1", amiId: "ami-123", version: "1.0.0" },
+          ]),
       };
       mockedDb.select
         .mockReturnValueOnce(activeAgentSelect as any)

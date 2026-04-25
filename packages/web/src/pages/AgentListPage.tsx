@@ -46,7 +46,10 @@ export function AgentListPage() {
     );
   }
 
-  if (error) return <p className="text-red-600">Error loading agents: {String(error)}</p>;
+  if (error)
+    return (
+      <p className="text-red-600">Error loading agents: {String(error)}</p>
+    );
 
   return (
     <div>

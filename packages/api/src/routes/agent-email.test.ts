@@ -14,9 +14,9 @@ vi.mock("../db.js", () => {
 
   const insertChain = {
     values: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([
-      { id: "msg-1", reviewStatus: "pending" },
-    ]),
+    returning: vi
+      .fn()
+      .mockResolvedValue([{ id: "msg-1", reviewStatus: "pending" }]),
   };
 
   return {
@@ -230,16 +230,21 @@ describe("agent email routes", () => {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { mailboxAddress: "agent@openclaw.disney.com", outboundReview: true },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              mailboxAddress: "agent@openclaw.disney.com",
+              outboundReview: true,
+            },
+          ]),
       };
 
       const insertChain = {
         values: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([
-          { id: "msg-new", reviewStatus: "pending" },
-        ]),
+        returning: vi
+          .fn()
+          .mockResolvedValue([{ id: "msg-new", reviewStatus: "pending" }]),
       };
 
       mockedDb.select.mockReturnValueOnce(channelSelect as any);
@@ -265,16 +270,21 @@ describe("agent email routes", () => {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([
-          { mailboxAddress: "agent@openclaw.disney.com", outboundReview: false },
-        ]),
+        limit: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              mailboxAddress: "agent@openclaw.disney.com",
+              outboundReview: false,
+            },
+          ]),
       };
 
       const insertChain = {
         values: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([
-          { id: "msg-new", reviewStatus: "approved" },
-        ]),
+        returning: vi
+          .fn()
+          .mockResolvedValue([{ id: "msg-new", reviewStatus: "approved" }]),
       };
 
       mockedDb.select.mockReturnValueOnce(channelSelect as any);

@@ -67,9 +67,7 @@ export function AuditLogPage() {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-500 mb-0.5">
-            Agent ID
-          </label>
+          <label className="block text-xs text-gray-500 mb-0.5">Agent ID</label>
           <input
             className={inputClasses}
             placeholder="Filter by agent ID"
@@ -139,9 +137,7 @@ export function AuditLogPage() {
       )}
 
       {error && (
-        <p className="text-red-600">
-          Error loading audit log: {String(error)}
-        </p>
+        <p className="text-red-600">Error loading audit log: {String(error)}</p>
       )}
 
       {data && (
@@ -160,10 +156,7 @@ export function AuditLogPage() {
               <tbody>
                 {data.data.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="p-4 text-center text-gray-400"
-                    >
+                    <td colSpan={5} className="p-4 text-center text-gray-400">
                       No audit entries found.
                     </td>
                   </tr>

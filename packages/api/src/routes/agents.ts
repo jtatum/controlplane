@@ -13,7 +13,7 @@ import {
 import { db } from "../db.js";
 import { getTemporalClient, TASK_QUEUE } from "../temporal.js";
 import { writeAuditLog } from "../audit.js";
-import { verifyAgentOwnership } from "../ownership.js";
+import { verifyAgentOwnership, isAdmin } from "../ownership.js";
 
 const UpdateAgentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -46,7 +46,9 @@ export default async function agentRoutes(app: FastifyInstance) {
   app.post("/agents", async (request, reply) => {
     const body = CreateAgentSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.code(400).send({ error: "Validation failed", details: body.error.issues });
+      return reply
+        .code(400)
+        .send({ error: "Validation failed", details: body.error.issues });
     }
 
     const { name, agentName, environment, config } = body.data;
@@ -56,12 +58,15 @@ export default async function agentRoutes(app: FastifyInstance) {
       const [existing] = await db
         .select({ id: agents.id })
         .from(agents)
-        .where(and(eq(agents.ownerId, user.id), ne(agents.status, "terminated")))
+        .where(
+          and(eq(agents.ownerId, user.id), ne(agents.status, "terminated")),
+        )
         .limit(1);
 
       if (existing) {
         return reply.code(409).send({
-          error: "You already have an active agent. Terminate it before creating a new one.",
+          error:
+            "You already have an active agent. Terminate it before creating a new one.",
         });
       }
     }
@@ -166,13 +171,18 @@ export default async function agentRoutes(app: FastifyInstance) {
   app.get("/agents", async (request, reply) => {
     const query = ListQuerySchema.safeParse(request.query);
     if (!query.success) {
-      return reply.code(400).send({ error: "Validation failed", details: query.error.issues });
+      return reply
+        .code(400)
+        .send({ error: "Validation failed", details: query.error.issues });
     }
 
     const { status, environment, limit, offset } = query.data;
     const user = request.dbUser!;
 
-    const conditions = [eq(agents.ownerId, user.id)];
+    const conditions = [];
+    if (!isAdmin(request)) {
+      conditions.push(eq(agents.ownerId, user.id));
+    }
     if (status) conditions.push(eq(agents.status, status));
     if (environment) conditions.push(eq(agents.environment, environment));
 
@@ -209,6 +219,11 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const user = request.dbUser!;
 
+    const conditions = [eq(agents.id, params.data.id)];
+    if (!isAdmin(request)) {
+      conditions.push(eq(agents.ownerId, user.id));
+    }
+
     const [row] = await db
       .select({
         agent: agents,
@@ -216,7 +231,7 @@ export default async function agentRoutes(app: FastifyInstance) {
       })
       .from(agents)
       .leftJoin(openclawVersions, eq(agents.versionId, openclawVersions.id))
-      .where(and(eq(agents.id, params.data.id), eq(agents.ownerId, user.id)))
+      .where(and(...conditions))
       .limit(1);
 
     if (!row) {
@@ -234,7 +249,9 @@ export default async function agentRoutes(app: FastifyInstance) {
 
     const body = UpdateAgentSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.code(400).send({ error: "Validation failed", details: body.error.issues });
+      return reply
+        .code(400)
+        .send({ error: "Validation failed", details: body.error.issues });
     }
 
     if (Object.keys(body.data).length === 0) {
@@ -247,7 +264,9 @@ export default async function agentRoutes(app: FastifyInstance) {
     if (!existing) return;
 
     if (existing.status === "terminated") {
-      return reply.code(409).send({ error: "Cannot update a terminated agent" });
+      return reply
+        .code(409)
+        .send({ error: "Cannot update a terminated agent" });
     }
 
     const updateFields: Partial<typeof agents.$inferInsert> = {

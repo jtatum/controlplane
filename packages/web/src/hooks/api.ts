@@ -2,7 +2,10 @@ import { userManager } from "../auth/config.js";
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === "true";
 
-export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function authFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   const headers = new Headers(init?.headers);
   headers.set("Accept", "application/json");
 

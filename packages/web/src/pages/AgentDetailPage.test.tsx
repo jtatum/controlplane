@@ -47,7 +47,11 @@ const baseAgent: AgentDetail = {
   provisionedAt: "2026-01-01T01:00:00Z",
   updatedAt: "2026-01-01T02:00:00Z",
   config: {
-    model: { id: "anthropic.claude-sonnet-4-20250514-v1:0", temperature: 0.7, maxTokens: 4096 },
+    model: {
+      id: "anthropic.claude-sonnet-4-20250514-v1:0",
+      temperature: 0.7,
+      maxTokens: 4096,
+    },
     gateway: { rateLimit: 60 },
     features: {},
   },
@@ -77,7 +81,9 @@ describe("AgentDetailPage", () => {
 
     renderPage();
 
-    expect(screen.getByText("anthropic.claude-sonnet-4-20250514-v1:0")).toBeTruthy();
+    expect(
+      screen.getByText("anthropic.claude-sonnet-4-20250514-v1:0"),
+    ).toBeTruthy();
     expect(screen.getByText("0.7")).toBeTruthy();
     expect(screen.getByText("4096")).toBeTruthy();
     expect(screen.getByText("60 req/min")).toBeTruthy();
@@ -276,7 +282,9 @@ describe("AgentDetailPage", () => {
       renderPage();
 
       expect(screen.getByText("Terminating...")).toBeTruthy();
-      expect((screen.getByText("Terminating...") as HTMLButtonElement).disabled).toBe(true);
+      expect(
+        (screen.getByText("Terminating...") as HTMLButtonElement).disabled,
+      ).toBe(true);
     });
 
     it("shows success message after termination", () => {

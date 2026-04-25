@@ -1,7 +1,4 @@
-import type {
-  ProvisioningJobStatus,
-  ProvisioningJobType,
-} from "./enums.js";
+import type { ProvisioningJobStatus, ProvisioningJobType } from "./enums.js";
 
 export interface ProvisioningJob {
   id: string;

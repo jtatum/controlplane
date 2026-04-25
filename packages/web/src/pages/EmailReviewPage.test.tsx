@@ -260,7 +260,15 @@ describe("EmailReviewPage", () => {
   it("populates agent filter dropdown from messages", () => {
     mockUseEmailsForReview.mockReturnValue({
       data: {
-        messages: [pendingMessage, { ...pendingMessage, id: "msg-3", agentId: "agent-2", agentName: "wiki-bot" }],
+        messages: [
+          pendingMessage,
+          {
+            ...pendingMessage,
+            id: "msg-3",
+            agentId: "agent-2",
+            agentName: "wiki-bot",
+          },
+        ],
         total: 2,
         limit: 100,
         offset: 0,

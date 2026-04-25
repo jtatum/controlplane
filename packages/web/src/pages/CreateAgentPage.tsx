@@ -65,7 +65,10 @@ export function CreateAgentPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+        <Link
+          to="/"
+          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+        >
           &larr; All agents
         </Link>
       </div>
@@ -77,7 +80,10 @@ export function CreateAgentPage() {
         className="bg-white p-6 rounded-lg shadow-sm max-w-xl"
       >
         <div className="mb-4">
-          <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="name">
+          <label
+            className="block mb-1 font-semibold text-sm text-gray-700"
+            htmlFor="name"
+          >
             Display Name
           </label>
           <input
@@ -93,7 +99,10 @@ export function CreateAgentPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="agentName">
+          <label
+            className="block mb-1 font-semibold text-sm text-gray-700"
+            htmlFor="agentName"
+          >
             Agent Name
           </label>
           <input
@@ -107,38 +116,50 @@ export function CreateAgentPage() {
             3-40 chars, lowercase alphanumeric and hyphens only
           </div>
           {errors["agentName"] && (
-            <div className="text-red-600 text-xs mt-1">{errors["agentName"]}</div>
+            <div className="text-red-600 text-xs mt-1">
+              {errors["agentName"]}
+            </div>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="environment">
+          <label
+            className="block mb-1 font-semibold text-sm text-gray-700"
+            htmlFor="environment"
+          >
             Environment
           </label>
           <select
             id="environment"
             className={inputClasses}
             value={environment}
-            onChange={(e) =>
-              setEnvironment(e.target.value as "dev" | "prod")
-            }
+            onChange={(e) => setEnvironment(e.target.value as "dev" | "prod")}
           >
             <option value="dev">Dev</option>
             <option value="prod">Prod</option>
           </select>
           {errors["environment"] && (
-            <div className="text-red-600 text-xs mt-1">{errors["environment"]}</div>
+            <div className="text-red-600 text-xs mt-1">
+              {errors["environment"]}
+            </div>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="version">
+          <label
+            className="block mb-1 font-semibold text-sm text-gray-700"
+            htmlFor="version"
+          >
             Version
           </label>
           {versionsLoading ? (
             <div className="text-gray-500 text-sm">Loading versions...</div>
           ) : (
-            <select id="version" className={`${inputClasses} bg-gray-50`} disabled>
+            <select
+              id="version"
+              className={`${inputClasses} bg-gray-50`}
+              disabled
+            >
               {defaultVersion ? (
                 <option value={defaultVersion.id}>
                   {defaultVersion.version} (default)
@@ -165,7 +186,10 @@ export function CreateAgentPage() {
         </h3>
 
         <div className="mb-4">
-          <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="modelId">
+          <label
+            className="block mb-1 font-semibold text-sm text-gray-700"
+            htmlFor="modelId"
+          >
             Model ID
           </label>
           <input
@@ -175,13 +199,18 @@ export function CreateAgentPage() {
             onChange={(e) => setModelId(e.target.value)}
           />
           {errors["config.model.id"] && (
-            <div className="text-red-600 text-xs mt-1">{errors["config.model.id"]}</div>
+            <div className="text-red-600 text-xs mt-1">
+              {errors["config.model.id"]}
+            </div>
           )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="temperature">
+            <label
+              className="block mb-1 font-semibold text-sm text-gray-700"
+              htmlFor="temperature"
+            >
               Temperature
             </label>
             <input
@@ -195,12 +224,17 @@ export function CreateAgentPage() {
               onChange={(e) => setTemperature(e.target.value)}
             />
             {errors["config.model.temperature"] && (
-              <div className="text-red-600 text-xs mt-1">{errors["config.model.temperature"]}</div>
+              <div className="text-red-600 text-xs mt-1">
+                {errors["config.model.temperature"]}
+              </div>
             )}
           </div>
 
           <div>
-            <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="maxTokens">
+            <label
+              className="block mb-1 font-semibold text-sm text-gray-700"
+              htmlFor="maxTokens"
+            >
               Max Tokens
             </label>
             <input
@@ -212,12 +246,17 @@ export function CreateAgentPage() {
               onChange={(e) => setMaxTokens(e.target.value)}
             />
             {errors["config.model.maxTokens"] && (
-              <div className="text-red-600 text-xs mt-1">{errors["config.model.maxTokens"]}</div>
+              <div className="text-red-600 text-xs mt-1">
+                {errors["config.model.maxTokens"]}
+              </div>
             )}
           </div>
 
           <div>
-            <label className="block mb-1 font-semibold text-sm text-gray-700" htmlFor="rateLimit">
+            <label
+              className="block mb-1 font-semibold text-sm text-gray-700"
+              htmlFor="rateLimit"
+            >
               Rate Limit (req/min)
             </label>
             <input
@@ -229,7 +268,9 @@ export function CreateAgentPage() {
               onChange={(e) => setRateLimit(e.target.value)}
             />
             {errors["config.gateway.rateLimit"] && (
-              <div className="text-red-600 text-xs mt-1">{errors["config.gateway.rateLimit"]}</div>
+              <div className="text-red-600 text-xs mt-1">
+                {errors["config.gateway.rateLimit"]}
+              </div>
             )}
           </div>
         </div>
