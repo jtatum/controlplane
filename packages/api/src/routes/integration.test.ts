@@ -642,6 +642,94 @@ describe("agent ownership checks", () => {
       await freshApp.close();
     });
   });
+
+  describe("email review cross-user isolation", () => {
+    it("non-admin cannot see emails from other users' agents in review queue", async () => {
+      const otherAgentId = await createAgentForUser(otherUserId, "iso-review");
+      await seedEmailMessage(otherAgentId);
+      const ownAgent = await createAgent("own-review-agent");
+      await seedEmailMessage(ownAgent.id, { subject: "My email" });
+
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "GET",
+        url: "/api/emails/review",
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].subject).toBe("My email");
+      expect(body.total).toBe(1);
+      await freshApp.close();
+    });
+
+    it("admin can see all emails in review queue", async () => {
+      const otherAgentId = await createAgentForUser(otherUserId, "admin-review");
+      await seedEmailMessage(otherAgentId, { subject: "Other email" });
+      const ownAgent = await createAgent("admin-own-review");
+      await seedEmailMessage(ownAgent.id, { subject: "Own email" });
+
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/emails/review",
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().messages).toHaveLength(2);
+      expect(res.json().total).toBe(2);
+    });
+
+    it("non-admin cannot view email detail for other users' agents", async () => {
+      const otherAgentId = await createAgentForUser(otherUserId, "iso-detail");
+      const msgId = await seedEmailMessage(otherAgentId);
+
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "GET",
+        url: `/api/emails/${msgId}`,
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error).toBe("Message not found");
+      await freshApp.close();
+    });
+
+    it("non-admin cannot review emails for other users' agents", async () => {
+      const otherAgentId = await createAgentForUser(otherUserId, "iso-rev-act");
+      const msgId = await seedEmailMessage(otherAgentId);
+
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "POST",
+        url: `/api/emails/${msgId}/review`,
+        payload: { status: "approved" },
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error).toBe("Message not found");
+      await freshApp.close();
+    });
+
+    it("non-admin can review their own agents' emails", async () => {
+      const ownAgent = await createAgent("own-rev-agent");
+      const msgId = await seedEmailMessage(ownAgent.id);
+
+      await pool.query("UPDATE users SET role = 'user' WHERE external_id = 'dev-user-001'");
+
+      const freshApp = await createFreshApp();
+      const res = await freshApp.inject({
+        method: "POST",
+        url: `/api/emails/${msgId}/review`,
+        payload: { status: "approved" },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().reviewStatus).toBe("approved");
+      await freshApp.close();
+    });
+  });
 });
 
 // ---------- Agent email routes ----------
