@@ -9,6 +9,7 @@ import {
 import type { EmailMessage } from "@controlplane/shared";
 import { db } from "../db.js";
 import { writeAuditLog } from "../audit.js";
+import { isAdmin } from "../ownership.js";
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (value === undefined) return fallback;
@@ -37,9 +38,14 @@ export async function humanEmailRoutes(app: FastifyInstance) {
         .send({ error: "Invalid status filter. Use: pending, approved, rejected" });
     }
 
+    const user = request.dbUser!;
     const conditions = [
       eq(emailMessages.reviewStatus, status as "pending" | "approved" | "rejected"),
     ];
+
+    if (!isAdmin(request)) {
+      conditions.push(eq(agents.ownerId, user.id));
+    }
 
     if (agentId) {
       conditions.push(eq(emailMessages.agentId, agentId));
@@ -75,6 +81,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(emailMessages)
+        .innerJoin(agents, eq(agents.id, emailMessages.agentId))
         .where(and(...conditions)),
     ]);
 
@@ -110,11 +117,18 @@ export async function humanEmailRoutes(app: FastifyInstance) {
     Params: { messageId: string };
   }>("/emails/:messageId", async (request, reply) => {
     const { messageId } = request.params;
+    const user = request.dbUser!;
+
+    const messageConditions = [eq(emailMessages.id, messageId)];
+    if (!isAdmin(request)) {
+      messageConditions.push(eq(agents.ownerId, user.id));
+    }
 
     const [message] = await db
-      .select()
+      .select({ msg: emailMessages })
       .from(emailMessages)
-      .where(eq(emailMessages.id, messageId))
+      .innerJoin(agents, eq(agents.id, emailMessages.agentId))
+      .where(and(...messageConditions))
       .limit(1);
 
     if (!message) {
@@ -126,23 +140,24 @@ export async function humanEmailRoutes(app: FastifyInstance) {
       .from(emailAttachments)
       .where(eq(emailAttachments.messageId, messageId));
 
+    const m = message.msg;
     const result: EmailMessage & { attachments: typeof attachments } = {
-      id: message.id,
-      agentId: message.agentId,
-      direction: message.direction,
-      sender: message.sender,
-      recipients: message.recipients,
-      cc: message.cc,
-      subject: message.subject,
-      bodyText: message.bodyText,
-      bodyHtml: message.bodyHtml,
-      reviewStatus: message.reviewStatus,
-      reviewedBy: message.reviewedBy,
-      reviewedAt: message.reviewedAt?.toISOString() ?? null,
-      reviewNote: message.reviewNote,
-      visibleToAgent: message.visibleToAgent,
-      sentAt: message.sentAt?.toISOString() ?? null,
-      createdAt: message.createdAt.toISOString(),
+      id: m.id,
+      agentId: m.agentId,
+      direction: m.direction,
+      sender: m.sender,
+      recipients: m.recipients,
+      cc: m.cc,
+      subject: m.subject,
+      bodyText: m.bodyText,
+      bodyHtml: m.bodyHtml,
+      reviewStatus: m.reviewStatus,
+      reviewedBy: m.reviewedBy,
+      reviewedAt: m.reviewedAt?.toISOString() ?? null,
+      reviewNote: m.reviewNote,
+      visibleToAgent: m.visibleToAgent,
+      sentAt: m.sentAt?.toISOString() ?? null,
+      createdAt: m.createdAt.toISOString(),
       attachments: attachments.map((a) => ({
         ...a,
         createdAt: a.createdAt,
@@ -157,6 +172,7 @@ export async function humanEmailRoutes(app: FastifyInstance) {
     Body: unknown;
   }>("/emails/:messageId/review", async (request, reply) => {
     const { messageId } = request.params;
+    const user = request.dbUser!;
 
     const parsed = ReviewEmailSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -164,6 +180,21 @@ export async function humanEmailRoutes(app: FastifyInstance) {
         error: "Validation failed",
         details: parsed.error.issues,
       });
+    }
+
+    if (!isAdmin(request)) {
+      const [owned] = await db
+        .select({ id: emailMessages.id })
+        .from(emailMessages)
+        .innerJoin(agents, eq(agents.id, emailMessages.agentId))
+        .where(
+          and(eq(emailMessages.id, messageId), eq(agents.ownerId, user.id)),
+        )
+        .limit(1);
+
+      if (!owned) {
+        return reply.status(404).send({ error: "Message not found" });
+      }
     }
 
     const [updated] = await db

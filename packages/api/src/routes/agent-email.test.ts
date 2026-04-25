@@ -27,9 +27,17 @@ vi.mock("../db.js", () => {
   };
 });
 
+vi.mock("../ownership.js", () => ({
+  verifyAgentOwnership: vi
+    .fn()
+    .mockResolvedValue({ id: "agent-1", ownerId: "user-1" }),
+}));
+
 import { db } from "../db.js";
+import { verifyAgentOwnership } from "../ownership.js";
 
 const mockedDb = vi.mocked(db);
+const mockedVerify = vi.mocked(verifyAgentOwnership);
 
 function buildApp() {
   const app = Fastify();
@@ -42,18 +50,17 @@ describe("agent email routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockedVerify.mockResolvedValue({ id: "agent-1", ownerId: "user-1" } as any);
     app = buildApp();
     await app.ready();
   });
 
   describe("GET /agents/:agentId/emails/inbox", () => {
     it("returns 404 when agent not found", async () => {
-      const selectChain = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([]),
-      };
-      mockedDb.select.mockReturnValueOnce(selectChain as any);
+      mockedVerify.mockImplementationOnce(async (_id, _req, reply) => {
+        reply.code(404).send({ error: "Agent not found" });
+        return null;
+      });
 
       const res = await app.inject({
         method: "GET",
@@ -64,13 +71,22 @@ describe("agent email routes", () => {
       expect(res.json()).toEqual({ error: "Agent not found" });
     });
 
-    it("returns messages with batch-loaded attachments", async () => {
-      const agentSelect = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
-      };
+    it("returns 403 when user does not own agent", async () => {
+      mockedVerify.mockImplementationOnce(async (_id, _req, reply) => {
+        reply.code(403).send({ error: "Forbidden" });
+        return null;
+      });
 
+      const res = await app.inject({
+        method: "GET",
+        url: "/agents/agent-1/emails/inbox",
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toEqual({ error: "Forbidden" });
+    });
+
+    it("returns messages with batch-loaded attachments", async () => {
       const now = new Date();
       const messagesSelect = {
         from: vi.fn().mockReturnThis(),
@@ -118,7 +134,6 @@ describe("agent email routes", () => {
       };
 
       mockedDb.select
-        .mockReturnValueOnce(agentSelect as any)
         .mockReturnValueOnce(messagesSelect as any)
         .mockReturnValueOnce(attachmentsSelect as any);
 
@@ -133,16 +148,10 @@ describe("agent email routes", () => {
       expect(body.messages[0].attachments).toHaveLength(1);
       expect(body.messages[0].attachments[0].filename).toBe("file.pdf");
       expect(body.messages[1].attachments).toHaveLength(0);
-      expect(mockedDb.select).toHaveBeenCalledTimes(3);
+      expect(mockedDb.select).toHaveBeenCalledTimes(2);
     });
 
     it("treats NaN limit/offset as defaults", async () => {
-      const agentSelect = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
-      };
-
       const messagesSelect = {
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -151,9 +160,7 @@ describe("agent email routes", () => {
         offset: vi.fn().mockResolvedValue([]),
       };
 
-      mockedDb.select
-        .mockReturnValueOnce(agentSelect as any)
-        .mockReturnValueOnce(messagesSelect as any);
+      mockedDb.select.mockReturnValueOnce(messagesSelect as any);
 
       const res = await app.inject({
         method: "GET",
@@ -180,12 +187,10 @@ describe("agent email routes", () => {
     });
 
     it("returns 404 when agent not found", async () => {
-      const agentSelect = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([]),
-      };
-      mockedDb.select.mockReturnValueOnce(agentSelect as any);
+      mockedVerify.mockImplementationOnce(async (_id, _req, reply) => {
+        reply.code(404).send({ error: "Agent not found" });
+        return null;
+      });
 
       const res = await app.inject({
         method: "POST",
@@ -200,13 +205,27 @@ describe("agent email routes", () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it("creates a pending message when outboundReview is true", async () => {
-      const agentSelect = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
-      };
+    it("returns 403 when user does not own agent", async () => {
+      mockedVerify.mockImplementationOnce(async (_id, _req, reply) => {
+        reply.code(403).send({ error: "Forbidden" });
+        return null;
+      });
 
+      const res = await app.inject({
+        method: "POST",
+        url: "/agents/agent-1/emails/send",
+        payload: {
+          recipients: ["user@example.com"],
+          subject: "Test",
+          bodyText: "Hello",
+        },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.json()).toEqual({ error: "Forbidden" });
+    });
+
+    it("creates a pending message when outboundReview is true", async () => {
       const channelSelect = {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
@@ -223,9 +242,7 @@ describe("agent email routes", () => {
         ]),
       };
 
-      mockedDb.select
-        .mockReturnValueOnce(agentSelect as any)
-        .mockReturnValueOnce(channelSelect as any);
+      mockedDb.select.mockReturnValueOnce(channelSelect as any);
       mockedDb.insert.mockReturnValueOnce(insertChain as any);
 
       const res = await app.inject({
@@ -244,12 +261,6 @@ describe("agent email routes", () => {
     });
 
     it("creates an approved message when outboundReview is false", async () => {
-      const agentSelect = {
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ id: "agent-1" }]),
-      };
-
       const channelSelect = {
         from: vi.fn().mockReturnThis(),
         innerJoin: vi.fn().mockReturnThis(),
@@ -266,9 +277,7 @@ describe("agent email routes", () => {
         ]),
       };
 
-      mockedDb.select
-        .mockReturnValueOnce(agentSelect as any)
-        .mockReturnValueOnce(channelSelect as any);
+      mockedDb.select.mockReturnValueOnce(channelSelect as any);
       mockedDb.insert.mockReturnValueOnce(insertChain as any);
 
       const res = await app.inject({

@@ -15,13 +15,23 @@ vi.mock("../audit.js", () => ({
   writeAuditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../ownership.js", () => ({
+  isAdmin: vi.fn().mockReturnValue(true),
+}));
+
 import { db } from "../db.js";
+import { isAdmin } from "../ownership.js";
 
 const mockedDb = vi.mocked(db);
+const mockedIsAdmin = vi.mocked(isAdmin);
 
 function buildApp() {
   const app = Fastify();
   app.decorateRequest("userId", "reviewer-1");
+  app.decorateRequest("dbUser", null);
+  app.addHook("onRequest", async (request) => {
+    request.dbUser = { id: "reviewer-1", role: "admin" } as any;
+  });
   app.register(humanEmailRoutes);
   return app;
 }
@@ -31,6 +41,7 @@ describe("human email routes", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockedIsAdmin.mockReturnValue(true);
     app = buildApp();
     await app.ready();
   });
@@ -78,6 +89,7 @@ describe("human email routes", () => {
 
       const countSelect = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockResolvedValue([{ count: 1 }]),
       };
 
@@ -109,6 +121,7 @@ describe("human email routes", () => {
 
       const countSelect = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       };
 
@@ -132,6 +145,7 @@ describe("human email routes", () => {
     it("returns 404 for unknown message", async () => {
       const selectChain = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
       };
@@ -149,25 +163,28 @@ describe("human email routes", () => {
       const now = new Date();
       const messageSelect = {
         from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([
           {
-            id: "msg-1",
-            agentId: "agent-1",
-            direction: "inbound",
-            sender: "user@example.com",
-            recipients: ["agent@openclaw.disney.com"],
-            cc: [],
-            subject: "Test",
-            bodyText: "Body",
-            bodyHtml: null,
-            reviewStatus: "approved",
-            reviewedBy: "reviewer-1",
-            reviewedAt: now,
-            reviewNote: "Looks good",
-            visibleToAgent: true,
-            sentAt: null,
-            createdAt: now,
+            msg: {
+              id: "msg-1",
+              agentId: "agent-1",
+              direction: "inbound",
+              sender: "user@example.com",
+              recipients: ["agent@openclaw.disney.com"],
+              cc: [],
+              subject: "Test",
+              bodyText: "Body",
+              bodyHtml: null,
+              reviewStatus: "approved",
+              reviewedBy: "reviewer-1",
+              reviewedAt: now,
+              reviewNote: "Looks good",
+              visibleToAgent: true,
+              sentAt: null,
+              createdAt: now,
+            },
           },
         ]),
       };
@@ -306,6 +323,58 @@ describe("human email routes", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.json().reviewStatus).toBe("rejected");
+    });
+
+    it("non-admin: returns 404 when message not owned", async () => {
+      mockedIsAdmin.mockReturnValue(false);
+
+      const ownershipSelect = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockedDb.select.mockReturnValueOnce(ownershipSelect as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/emails/msg-1/review",
+        payload: { status: "approved" },
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("non-admin: approves owned message", async () => {
+      mockedIsAdmin.mockReturnValue(false);
+      const now = new Date();
+
+      const ownershipSelect = {
+        from: vi.fn().mockReturnThis(),
+        innerJoin: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: "msg-1" }]),
+      };
+
+      const updateChain = {
+        set: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        returning: vi.fn().mockResolvedValue([
+          { id: "msg-1", agentId: "agent-1", reviewStatus: "approved", reviewedAt: now },
+        ]),
+      };
+
+      mockedDb.select.mockReturnValueOnce(ownershipSelect as any);
+      mockedDb.update.mockReturnValueOnce(updateChain as any);
+
+      const res = await app.inject({
+        method: "POST",
+        url: "/emails/msg-1/review",
+        payload: { status: "approved" },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().reviewStatus).toBe("approved");
     });
   });
 });

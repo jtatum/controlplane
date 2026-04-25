@@ -10,6 +10,7 @@ import {
 } from "@controlplane/shared";
 import type { AgentEmailMessage } from "@controlplane/shared";
 import { db } from "../db.js";
+import { verifyAgentOwnership } from "../ownership.js";
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (value === undefined) return fallback;
@@ -36,15 +37,8 @@ export async function agentEmailRoutes(app: FastifyInstance) {
     const limit = Math.min(parsePositiveInt(request.query.limit, 50), 100);
     const offset = parsePositiveInt(request.query.offset, 0);
 
-    const agent = await db
-      .select({ id: agents.id })
-      .from(agents)
-      .where(eq(agents.id, agentId))
-      .limit(1);
-
-    if (agent.length === 0) {
-      return reply.status(404).send({ error: "Agent not found" });
-    }
+    const agent = await verifyAgentOwnership(agentId, request, reply);
+    if (!agent) return;
 
     const messages = await db
       .select()
@@ -125,15 +119,8 @@ export async function agentEmailRoutes(app: FastifyInstance) {
       });
     }
 
-    const agent = await db
-      .select({ id: agents.id })
-      .from(agents)
-      .where(eq(agents.id, agentId))
-      .limit(1);
-
-    if (agent.length === 0) {
-      return reply.status(404).send({ error: "Agent not found" });
-    }
+    const agent = await verifyAgentOwnership(agentId, request, reply);
+    if (!agent) return;
 
     const emailChannel = await db
       .select({ mailboxAddress: channelEmail.mailboxAddress, outboundReview: channelEmail.outboundReview })
